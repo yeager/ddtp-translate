@@ -2,9 +2,6 @@
 # Copyright (C) 2026 Daniel Nylander
 # This file is distributed under the same license as the ddtp-translate package.
 # 
-# Translators:
-# Daniel Nylander <po@danielnylander.se>, 2026
-# 
 #, fuzzy
 msgid ""
 msgstr ""
@@ -12,52 +9,51 @@ msgstr ""
 "Report-Msgid-Bugs-To: daniel@danielnylander.se\n"
 "POT-Creation-Date: 2026-02-15 14:50+0100\n"
 "PO-Revision-Date: 2026-02-15 09:12+0000\n"
-"Last-Translator: Daniel Nylander <po@danielnylander.se>, 2026\n"
-"Language-Team: Swedish (https://app.transifex.com/danielnylander/teams/304806/sv/)\n"
+"Language-Team: Korean (https://app.transifex.com/danielnylander/teams/304806/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: sv\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: ko\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
 msgid "Preferences"
-msgstr "Inställningar"
+msgstr ""
 
 msgid "SMTP"
-msgstr "SMTP"
+msgstr ""
 
 msgid "Mail Server"
-msgstr "E-postserver"
+msgstr ""
 
 msgid "SMTP Host"
-msgstr "SMTP-värd"
+msgstr ""
 
 msgid "SMTP Port"
-msgstr "SMTP-port"
+msgstr ""
 
 msgid "Username"
-msgstr "Användarnamn"
+msgstr ""
 
 msgid "Password"
-msgstr "Lösenord"
+msgstr ""
 
 msgid "Use TLS"
-msgstr "Använd TLS"
+msgstr ""
 
 msgid "Quick Setup"
-msgstr "Snabbkonfiguration"
+msgstr ""
 
 msgid "Use Gmail"
-msgstr "Använd Gmail"
+msgstr ""
 
 msgid "Identity"
-msgstr "Identitet"
+msgstr ""
 
 msgid "Your Name"
-msgstr "Ditt namn"
+msgstr ""
 
 msgid "Your Email"
-msgstr "Din e-postadress"
+msgstr ""
 
 msgid "Sending"
 msgstr ""
@@ -72,37 +68,37 @@ msgid "Delay between emails (seconds)"
 msgstr ""
 
 msgid "DDTP Translate"
-msgstr "Översätt DDTP"
+msgstr ""
 
 msgid "Refresh"
-msgstr "Uppdatera"
+msgstr ""
 
 msgid "Sort packages"
 msgstr ""
 
 msgid "Toggle heatmap view"
-msgstr "Växla värmekarta"
+msgstr ""
 
 msgid "About"
-msgstr "Om"
+msgstr ""
 
 msgid "Filter packages…"
-msgstr "Filtrera paket…"
+msgstr ""
 
 msgid "Original (English)"
-msgstr "Original (engelska)"
+msgstr ""
 
 msgid "Translation"
-msgstr "Översättning"
+msgstr ""
 
 msgid "Ready"
-msgstr "Redo"
+msgstr ""
 
 msgid "Submit Translation"
-msgstr "Skicka in översättning"
+msgstr ""
 
 msgid "Loading…"
-msgstr "Läser in…"
+msgstr ""
 
 msgid "Downloading package data…"
 msgstr ""
@@ -111,13 +107,13 @@ msgid "{n} packages loaded"
 msgstr ""
 
 msgid "{n} untranslated"
-msgstr "{n} icke-översatta"
+msgstr ""
 
 msgid "Editing: {pkg}"
-msgstr "Redigerar: {pkg}"
+msgstr ""
 
 msgid "Translation is empty"
-msgstr "Översättningen är tom"
+msgstr ""
 
 msgid "SMTP not configured — open Preferences first"
 msgstr ""
@@ -132,13 +128,13 @@ msgid "Rate limit: sending in {s} seconds…"
 msgstr ""
 
 msgid "Sending…"
-msgstr "Skickar…"
+msgstr ""
 
 msgid "Sent successfully!"
-msgstr "Inskickad!"
+msgstr ""
 
 msgid "Error: {e}"
-msgstr "Fel: {e}"
+msgstr ""
 
 msgid "Welcome to DDTP Translate"
 msgstr ""
@@ -147,7 +143,7 @@ msgid "Get Started"
 msgstr ""
 
 msgid "Translate Debian package descriptions via DDTP"
-msgstr "Översätt Debian-paketbeskrivningar via DDTP"
+msgstr ""
 
 msgid "Translation Tool"
 msgstr ""

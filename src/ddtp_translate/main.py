@@ -6,6 +6,7 @@ import locale
 import os
 import sys
 import threading
+import time
 
 import gi
 
@@ -33,6 +34,9 @@ gettext.textdomain("ddtp-translate")
 _ = gettext.gettext
 
 APP_ID = "se.danielnylander.ddtp-translate"
+
+# Default email delay between submissions (seconds)
+DEFAULT_SEND_DELAY = 30
 
 
 def _setup_heatmap_css():
@@ -107,6 +111,21 @@ class PreferencesWindow(Adw.PreferencesWindow):
         id_group.add(self.email_row)
         smtp_page.add(id_group)
 
+        # Sending page
+        send_page = Adw.PreferencesPage(title=_("Sending"), icon_name="preferences-system-time-symbolic")
+        send_group = Adw.PreferencesGroup(
+            title=_("Rate Limiting"),
+            description=_("Delay between email submissions to avoid flooding the DDTP server."),
+        )
+
+        self.delay_row = Adw.SpinRow.new_with_range(0, 300, 5)
+        self.delay_row.set_title(_("Delay between emails (seconds)"))
+        self.delay_row.set_value(self.settings.get("send_delay", DEFAULT_SEND_DELAY))
+        send_group.add(self.delay_row)
+
+        send_page.add(send_group)
+        self.add(send_page)
+
         self.add(smtp_page)
 
         self.connect("close-request", self._on_close)
@@ -126,6 +145,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
                 "smtp_use_tls": self.tls_row.get_active(),
                 "from_name": self.name_row.get_text(),
                 "from_email": self.email_row.get_text(),
+                "send_delay": int(self.delay_row.get_value()),
             }
         )
         save_settings(self.settings)
@@ -142,6 +162,8 @@ class MainWindow(Adw.ApplicationWindow):
         self.current_pkg = None
         self.settings = load_settings()
         self._heatmap_mode = False
+        self._sort_ascending = True
+        self._last_send_time = 0
 
         _setup_heatmap_css()
 
@@ -172,6 +194,12 @@ class MainWindow(Adw.ApplicationWindow):
         refresh_btn = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text=_("Refresh"))
         refresh_btn.connect("clicked", self._on_refresh)
         header.pack_start(refresh_btn)
+
+        # Sort button
+        sort_btn = Gtk.Button(icon_name="view-sort-ascending-symbolic", tooltip_text=_("Sort packages"))
+        sort_btn.connect("clicked", self._on_sort_clicked)
+        header.pack_start(sort_btn)
+        self._sort_btn = sort_btn
 
         # Heatmap toggle
         self._heatmap_btn = Gtk.ToggleButton(icon_name="view-grid-symbolic")
@@ -209,6 +237,13 @@ class MainWindow(Adw.ApplicationWindow):
         self.search_entry.set_margin_bottom(6)
         self.search_entry.connect("search-changed", self._on_search_changed)
         sidebar_box.append(self.search_entry)
+
+        # Progress bar (hidden by default)
+        self._progress_bar = Gtk.ProgressBar()
+        self._progress_bar.set_margin_start(6)
+        self._progress_bar.set_margin_end(6)
+        self._progress_bar.set_visible(False)
+        sidebar_box.append(self._progress_bar)
 
         # Package list
         scroll = Gtk.ScrolledWindow(vexpand=True)
@@ -319,26 +354,73 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_refresh(self, *_args):
         self._refresh_packages(force=True)
 
+    def _on_sort_clicked(self, btn):
+        self._sort_ascending = not self._sort_ascending
+        btn.set_icon_name(
+            "view-sort-ascending-symbolic" if self._sort_ascending else "view-sort-descending-symbolic"
+        )
+        self.packages.sort(key=lambda p: p.get("package", "").lower(), reverse=not self._sort_ascending)
+        self._populate_list(self.packages)
+
     def _refresh_packages(self, force=False):
         lang = self._current_lang()
         self.status_label.set_text(_("Loading…"))
-        self.pkg_list.remove_all() if hasattr(self.pkg_list, "remove_all") else self._clear_list()
+        self._progress_bar.set_visible(True)
+        self._progress_bar.set_fraction(0.0)
+        self._progress_bar.set_text(_("Downloading package data…"))
+        self._progress_bar.set_show_text(True)
+        self._clear_list()
+
+        # Pulse the progress bar while loading
+        self._loading = True
+
+        def pulse():
+            if self._loading:
+                self._progress_bar.pulse()
+                return True
+            return False
+
+        GLib.timeout_add(150, pulse)
 
         def do_fetch():
             try:
                 pkgs = fetch_untranslated(lang, force_refresh=force)
-                GLib.idle_add(self._populate_list, pkgs)
+                self._loading = False
+                GLib.idle_add(self._on_packages_loaded, pkgs)
             except Exception as exc:
-                GLib.idle_add(self.status_label.set_text, str(exc))
+                self._loading = False
+                GLib.idle_add(self._on_load_error, str(exc))
 
         threading.Thread(target=do_fetch, daemon=True).start()
 
+    def _on_packages_loaded(self, pkgs):
+        self._progress_bar.set_fraction(1.0)
+        self._progress_bar.set_text(
+            _("{n} packages loaded").format(n=len(pkgs))
+        )
+        # Hide progress bar after a short delay
+        GLib.timeout_add(1500, self._hide_progress)
+        # Sort
+        pkgs.sort(key=lambda p: p.get("package", "").lower(), reverse=not self._sort_ascending)
+        self._populate_list(pkgs)
+
+    def _on_load_error(self, msg):
+        self._progress_bar.set_visible(False)
+        self.status_label.set_text(msg)
+
+    def _hide_progress(self):
+        self._progress_bar.set_visible(False)
+        return False
+
     def _clear_list(self):
-        while True:
-            row = self.pkg_list.get_row_at_index(0)
-            if row is None:
-                break
-            self.pkg_list.remove(row)
+        if hasattr(self.pkg_list, "remove_all"):
+            self.pkg_list.remove_all()
+        else:
+            while True:
+                row = self.pkg_list.get_row_at_index(0)
+                if row is None:
+                    break
+                self.pkg_list.remove(row)
 
     def _on_heatmap_toggled(self, btn):
         self._heatmap_mode = btn.get_active()
@@ -432,6 +514,49 @@ class MainWindow(Adw.ApplicationWindow):
             self.status_label.set_text(_("Translation is empty"))
             return
 
+        # Check SMTP is configured
+        settings = load_settings()
+        if not settings.get("smtp_host"):
+            self.status_label.set_text(_("SMTP not configured — open Preferences first"))
+            return
+
+        # Rate limiting: check delay
+        send_delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
+        now = time.time()
+        elapsed = now - self._last_send_time
+        remaining = send_delay - elapsed
+
+        if self._last_send_time > 0 and remaining > 0:
+            self.status_label.set_text(
+                _("Please wait {s} seconds before sending again").format(s=int(remaining + 1))
+            )
+            # Start a countdown timer
+            self.submit_btn.set_sensitive(False)
+            self._start_countdown(remaining, text)
+            return
+
+        self._do_send(text)
+
+    def _start_countdown(self, remaining, text):
+        """Count down and auto-send when ready."""
+        self._countdown_remaining = remaining
+        self._pending_text = text
+
+        def tick():
+            self._countdown_remaining -= 1
+            if self._countdown_remaining <= 0:
+                self.submit_btn.set_sensitive(True)
+                self.status_label.set_text(_("Ready — sending…"))
+                self._do_send(self._pending_text)
+                return False
+            self.status_label.set_text(
+                _("Rate limit: sending in {s} seconds…").format(s=int(self._countdown_remaining))
+            )
+            return True
+
+        GLib.timeout_add(1000, tick)
+
+    def _do_send(self, text):
         lines = text.split("\n", 1)
         short = lines[0]
         long_text = lines[1].strip() if len(lines) > 1 else ""
@@ -444,6 +569,7 @@ class MainWindow(Adw.ApplicationWindow):
         def do_send():
             try:
                 send_translation(pkg["package"], pkg["md5"], lang, short, long_text)
+                self._last_send_time = time.time()
                 GLib.idle_add(self.status_label.set_text, _("Sent successfully!"))
             except Exception as exc:
                 GLib.idle_add(self.status_label.set_text, _("Error: {e}").format(e=str(exc)))
@@ -460,38 +586,45 @@ class DDTPTranslateApp(Adw.Application):
 
         self.create_action("preferences", self._on_preferences)
         self.create_action("about", self._on_about)
+        self._first_run_shown = False
 
     def do_activate(self):
         win = self.props.active_window
         if not win:
             win = MainWindow(self)
-            # Show preferences on first run if SMTP not configured
+            # Show welcome dialog on first run
             settings = load_settings()
-            if not settings.get("smtp_host"):
-                GLib.idle_add(self._prompt_smtp_setup, win)
+            if not settings.get("welcome_shown"):
+                GLib.idle_add(self._show_welcome, win)
         win.present()
 
-    def _prompt_smtp_setup(self, win):
+    def _show_welcome(self, win):
         dialog = Adw.MessageDialog(
             transient_for=win,
-            heading=_("SMTP Setup Required"),
+            heading=_("Welcome to DDTP Translate"),
             body=_(
-                "To submit translations to DDTP, you need to configure an SMTP server.\n\n"
-                "Common options:\n"
-                "• Gmail: smtp.gmail.com, port 465, TLS on\n"
-                "• Outlook: smtp.office365.com, port 587\n\n"
-                "You also need to set your name and email address."
+                "This app helps you translate Debian package descriptions "
+                "through the Debian Description Translation Project (DDTP).\n\n"
+                "How it works:\n"
+                "1. Select your language from the dropdown\n"
+                "2. Browse packages that need translation\n"
+                "3. Write your translation in the editor\n"
+                "4. Submit — the translation is emailed to DDTP for review\n\n"
+                "Your translations help millions of Debian and Ubuntu users "
+                "see package descriptions in their own language.\n\n"
+                "Before submitting, you need to configure an SMTP server "
+                "in Preferences (Gmail works well with an App Password)."
             ),
         )
-        dialog.add_response("later", _("Later"))
-        dialog.add_response("setup", _("Open Preferences"))
-        dialog.set_response_appearance("setup", Adw.ResponseAppearance.SUGGESTED)
-        dialog.set_default_response("setup")
+        dialog.add_response("close", _("Get Started"))
+        dialog.set_response_appearance("close", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response("close")
 
         def on_response(d, response):
             d.close()
-            if response == "setup":
-                self._on_preferences()
+            settings = load_settings()
+            settings["welcome_shown"] = True
+            save_settings(settings)
 
         dialog.connect("response", on_response)
         dialog.present()
