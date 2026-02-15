@@ -1,0 +1,133 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Daniel Nylander
+# This file is distributed under the same license as the ddtp-translate package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+# Translators:
+# Daniel Nylander <po@danielnylander.se>, 2026
+# 
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: ddtp-translate\n"
+"Report-Msgid-Bugs-To: daniel@danielnylander.se\n"
+"POT-Creation-Date: 2026-02-15 10:10+0100\n"
+"PO-Revision-Date: 2026-02-15 09:12+0000\n"
+"Last-Translator: Daniel Nylander <po@danielnylander.se>, 2026\n"
+"Language-Team: Swedish (https://app.transifex.com/danielnylander/teams/304806/sv/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: sv\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/ddtp_translate/main.py:43 src/ddtp_translate/main.py:151
+msgid "Preferences"
+msgstr "Inställningar"
+
+#: src/ddtp_translate/main.py:50
+msgid "SMTP"
+msgstr "SMTP"
+
+#: src/ddtp_translate/main.py:51
+msgid "Mail Server"
+msgstr "E-postserver"
+
+#: src/ddtp_translate/main.py:53
+msgid "SMTP Host"
+msgstr "SMTP-värd"
+
+#: src/ddtp_translate/main.py:57
+msgid "SMTP Port"
+msgstr "SMTP-port"
+
+#: src/ddtp_translate/main.py:61
+msgid "Username"
+msgstr "Användarnamn"
+
+#: src/ddtp_translate/main.py:65
+msgid "Password"
+msgstr "Lösenord"
+
+#: src/ddtp_translate/main.py:69
+msgid "Use TLS"
+msgstr "Använd TLS"
+
+#: src/ddtp_translate/main.py:76
+msgid "Identity"
+msgstr "Identitet"
+
+#: src/ddtp_translate/main.py:77
+msgid "Your Name"
+msgstr "Ditt namn"
+
+#: src/ddtp_translate/main.py:81
+msgid "Your Email"
+msgstr "Din e-postadress"
+
+#: src/ddtp_translate/main.py:110 src/ddtp_translate/main.py:386
+msgid "DDTP Translate"
+msgstr "Översätt DDTP"
+
+#: src/ddtp_translate/main.py:140
+msgid "Refresh"
+msgstr "Uppdatera"
+
+#: src/ddtp_translate/main.py:152
+msgid "About"
+msgstr "Om"
+
+#: src/ddtp_translate/main.py:167
+msgid "Filter packages…"
+msgstr "Filtrera paket…"
+
+#: src/ddtp_translate/main.py:194
+msgid "Original (English)"
+msgstr "Original (engelska)"
+
+#: src/ddtp_translate/main.py:212
+msgid "Translation"
+msgstr "Översättning"
+
+#: src/ddtp_translate/main.py:237 src/ddtp_translate/main.py:297
+msgid "Ready"
+msgstr "Redo"
+
+#: src/ddtp_translate/main.py:241
+msgid "Submit Translation"
+msgstr "Skicka in översättning"
+
+#: src/ddtp_translate/main.py:267
+msgid "Loading…"
+msgstr "Läser in…"
+
+#: src/ddtp_translate/main.py:296
+#, python-brace-format
+msgid "{n} untranslated"
+msgstr "{n} icke-översatta"
+
+#: src/ddtp_translate/main.py:327
+#, python-brace-format
+msgid "Editing: {pkg}"
+msgstr "Redigerar: {pkg}"
+
+#: src/ddtp_translate/main.py:336
+msgid "Translation is empty"
+msgstr "Översättningen är tom"
+
+#: src/ddtp_translate/main.py:346
+msgid "Sending…"
+msgstr "Skickar…"
+
+#: src/ddtp_translate/main.py:351
+msgid "Sent successfully!"
+msgstr "Inskickad!"
+
+#: src/ddtp_translate/main.py:353
+#, python-brace-format
+msgid "Error: {e}"
+msgstr "Fel: {e}"
+
+#: src/ddtp_translate/main.py:395
+msgid "Translate Debian package descriptions via DDTP"
+msgstr "Översätt Debian-paketbeskrivningar via DDTP"
