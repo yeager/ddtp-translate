@@ -1,239 +1,399 @@
-# DDTP Translate translation template.
-# Copyright (C) 2026 Daniel Nylander
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ddtp-translate 0.3.0\n"
-"POT-Creation-Date: 2026-02-15 15:35+0100\n"
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-02-15 18:40+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: \n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid "About"
-msgstr ""
-
-msgid "Add this translation to the send queue"
-msgstr ""
-
-msgid "Add to Queue"
-msgstr ""
-
-msgid "Added {pkg} to queue ({n} total)"
-msgstr ""
-
-msgid "Cancel"
-msgstr ""
-
-msgid "Clear queue"
-msgstr ""
-
-msgid "Close"
-msgstr ""
-
-msgid "DDTP Translate"
-msgstr ""
-
-msgid "Delay between email submissions to avoid flooding the DDTP server."
-msgstr ""
-
-msgid "Delay between emails (seconds)"
-msgstr ""
-
-msgid "Done! {sent} sent, {errors} errors out of {total}"
-msgstr ""
-
-msgid "Downloading package data…"
-msgstr ""
-
-msgid "Editing: {pkg}"
-msgstr ""
-
-msgid "Error: {e}"
-msgstr ""
-
-msgid "Export as PO file"
-msgstr ""
-
-msgid "Export as PO file…"
-msgstr ""
-
-msgid "Exported {n} packages to {path}"
-msgstr ""
-
-msgid "Filter packages…"
-msgstr ""
-
-msgid "Get Started"
-msgstr ""
-
-msgid "I understand — Send All"
-msgstr ""
-
-msgid "Identity"
-msgstr ""
-
-msgid "Import translated PO file"
-msgstr ""
-
-msgid "Import translated PO…"
-msgstr ""
-
-msgid "Imported {added} new, {updated} updated — {total} in queue"
-msgstr ""
-
-msgid "Loading…"
-msgstr ""
-
-msgid "Mail Server"
-msgstr ""
-
-msgid "Next email in {s} seconds…"
-msgstr ""
-
-msgid "No packages loaded to export"
-msgstr ""
-
-msgid "No translated entries found in file (only entries with translations are imported)"
-msgstr ""
-
-msgid "Original (English)"
-msgstr ""
-
-msgid "PO files"
-msgstr ""
-
-msgid "Password"
-msgstr ""
-
+#: src/ddtp_translate/main.py:63 src/ddtp_translate/main.py:288
 msgid "Preferences"
 msgstr ""
 
-msgid "Quick Setup"
-msgstr ""
-
-msgid "Rate Limiting"
-msgstr ""
-
-msgid "Ready"
-msgstr ""
-
-msgid "Refresh"
-msgstr ""
-
-msgid "Remove from queue"
-msgstr ""
-
-msgid "Removed {pkg} from queue"
-msgstr ""
-
+#: src/ddtp_translate/main.py:70
 msgid "SMTP"
 msgstr ""
 
+#: src/ddtp_translate/main.py:71
+msgid "Mail Server"
+msgstr ""
+
+#: src/ddtp_translate/main.py:73
 msgid "SMTP Host"
 msgstr ""
 
+#: src/ddtp_translate/main.py:77
 msgid "SMTP Port"
 msgstr ""
 
-msgid "SMTP not configured — open Preferences first"
-msgstr ""
-
-msgid "Send Queue"
-msgstr ""
-
-msgid "Send queue"
-msgstr ""
-
-msgid "Send {n} translations to DDTP?"
-msgstr ""
-
-msgid "Sending"
-msgstr ""
-
-msgid "Sending Translations"
-msgstr ""
-
-msgid "Sending complete"
-msgstr ""
-
-msgid "Sending translations…"
-msgstr ""
-
-msgid "Sending: {pkg} ({i}/{total})"
-msgstr ""
-
-msgid "Sending…"
-msgstr ""
-
-msgid "Sent successfully!"
-msgstr ""
-
-msgid "Sort packages"
-msgstr ""
-
-msgid "Sort queue"
-msgstr ""
-
-msgid "Submit Now"
-msgstr ""
-
-msgid "Toggle heatmap view"
-msgstr ""
-
-msgid "Translate Debian package descriptions via DDTP"
-msgstr ""
-
-msgid "Translation"
-msgstr ""
-
-msgid "Translation is empty"
-msgstr ""
-
-msgid "Updated {pkg} in queue"
-msgstr ""
-
-msgid "Use Gmail"
-msgstr ""
-
-msgid "Use TLS"
-msgstr ""
-
+#: src/ddtp_translate/main.py:81
 msgid "Username"
 msgstr ""
 
-msgid "Welcome to DDTP Translate"
+#: src/ddtp_translate/main.py:85
+msgid "Password"
 msgstr ""
 
-msgid "Your Email"
+#: src/ddtp_translate/main.py:89
+msgid "Use TLS"
 msgstr ""
 
+#: src/ddtp_translate/main.py:94
+msgid "Quick Setup"
+msgstr ""
+
+#: src/ddtp_translate/main.py:96
+msgid "Use Gmail"
+msgstr ""
+
+#: src/ddtp_translate/main.py:108
+msgid "Identity"
+msgstr ""
+
+#: src/ddtp_translate/main.py:109
 msgid "Your Name"
 msgstr ""
 
-msgid "{h}h {m}m"
+#: src/ddtp_translate/main.py:113
+msgid "Your Email"
 msgstr ""
 
-msgid "{m} minutes"
+#: src/ddtp_translate/main.py:121
+msgid "Sending"
 msgstr ""
 
-msgid "{n} packages loaded"
+#: src/ddtp_translate/main.py:123
+msgid "Rate Limiting"
 msgstr ""
 
-msgid "{n} untranslated"
+#: src/ddtp_translate/main.py:124
+msgid "Delay between email submissions to avoid flooding the DDTP server."
 msgstr ""
 
-msgid "{ready} ready, {sent} sent, {errors} errors"
+#: src/ddtp_translate/main.py:128
+msgid "Delay between emails (seconds)"
 msgstr ""
 
+#: src/ddtp_translate/main.py:136
+msgid "Display"
+msgstr ""
+
+#: src/ddtp_translate/main.py:137
+msgid "Limit how many packages are loaded into the list for faster startup."
+msgstr ""
+
+#: src/ddtp_translate/main.py:140
+msgid "Max packages to display"
+msgstr ""
+
+#: src/ddtp_translate/main.py:144
+msgid "All"
+msgstr ""
+
+#: src/ddtp_translate/main.py:202 src/ddtp_translate/main.py:1273
+msgid "DDTP Translate"
+msgstr ""
+
+#: src/ddtp_translate/main.py:239
+msgid "Refresh"
+msgstr ""
+
+#: src/ddtp_translate/main.py:244
+msgid "Sort packages"
+msgstr ""
+
+#: src/ddtp_translate/main.py:251
+msgid "Toggle heatmap view"
+msgstr ""
+
+#: src/ddtp_translate/main.py:267
+msgid "Send queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:274
+msgid "Import translated PO file"
+msgstr ""
+
+#: src/ddtp_translate/main.py:279
+msgid "Export as PO file"
+msgstr ""
+
+#: src/ddtp_translate/main.py:285
+msgid "Export as PO file…"
+msgstr ""
+
+#: src/ddtp_translate/main.py:286
+msgid "Import translated PO…"
+msgstr ""
+
+#: src/ddtp_translate/main.py:287
+msgid "Clear queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:289
+msgid "About"
+msgstr ""
+
+#: src/ddtp_translate/main.py:302
+msgid "Filter packages…"
+msgstr ""
+
+#: src/ddtp_translate/main.py:353
+msgid "Original (English)"
+msgstr ""
+
+#: src/ddtp_translate/main.py:371
+msgid "Translation"
+msgstr ""
+
+#: src/ddtp_translate/main.py:396 src/ddtp_translate/main.py:585
+msgid "Ready"
+msgstr ""
+
+#: src/ddtp_translate/main.py:401
+msgid "Add to Queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:402
+msgid "Add this translation to the send queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:408
+msgid "Submit Now"
+msgstr ""
+
+#: src/ddtp_translate/main.py:428
+msgid "Send Queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:437
+msgid "Sort queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:474
+#, python-brace-format
 msgid "{s} seconds"
 msgstr ""
 
+#: src/ddtp_translate/main.py:477
+#, python-brace-format
+msgid "{m} minutes"
+msgstr ""
+
+#: src/ddtp_translate/main.py:479
+#, python-brace-format
+msgid "{h}h {m}m"
+msgstr ""
+
+#: src/ddtp_translate/main.py:503
+msgid "Loading…"
+msgstr ""
+
+#: src/ddtp_translate/main.py:506
+msgid "Downloading package data…"
+msgstr ""
+
+#: src/ddtp_translate/main.py:538
+#, python-brace-format
+msgid "{n} packages loaded"
+msgstr ""
+
+#: src/ddtp_translate/main.py:545
+#, python-brace-format
+msgid "{shown} of {total} untranslated"
+msgstr ""
+
+#: src/ddtp_translate/main.py:584
+#, python-brace-format
+msgid "{n} untranslated"
+msgstr ""
+
+#: src/ddtp_translate/main.py:652
+#, python-brace-format
+msgid "Editing: {pkg}"
+msgstr ""
+
+#: src/ddtp_translate/main.py:663 src/ddtp_translate/main.py:701
+msgid "Translation is empty"
+msgstr ""
+
+#: src/ddtp_translate/main.py:668 src/ddtp_translate/main.py:817
+msgid "SMTP not configured — open Preferences first"
+msgstr ""
+
+#: src/ddtp_translate/main.py:678
+msgid "Sending…"
+msgstr ""
+
+#: src/ddtp_translate/main.py:684
+msgid "Sent successfully!"
+msgstr ""
+
+#: src/ddtp_translate/main.py:686
+#, python-brace-format
+msgid "Error: {e}"
+msgstr ""
+
+#: src/ddtp_translate/main.py:718
+#, python-brace-format
+msgid "Updated {pkg} in queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:723
+#, python-brace-format
+msgid "Added {pkg} to queue ({n} total)"
+msgstr ""
+
+#: src/ddtp_translate/main.py:782
+msgid "Remove from queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:789
+#, python-brace-format
+msgid "{ready} ready, {sent} sent, {errors} errors"
+msgstr ""
+
+#: src/ddtp_translate/main.py:806
+#, python-brace-format
+msgid "Removed {pkg} from queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:826
+#, python-brace-format
+msgid "Send {n} translations to DDTP?"
+msgstr ""
+
+#: src/ddtp_translate/main.py:828
+#, python-brace-format
+msgid ""
+"You are about to send {n} translation(s) to the Debian Description "
+"Translation Project (DDTP) via email.\n"
+"\n"
+"⚠️ Important information:\n"
+"\n"
+"• Each translation is sent as a separate email to pdesc@ddtp.debian.org\n"
+"• A delay of {delay} seconds is enforced between each email to prevent "
+"overloading the DDTP server\n"
+"• The DDTP server is run by volunteers — please be considerate\n"
+"• Estimated time: {time}\n"
+"• You can cancel the process at any time\n"
+"• Successfully sent translations cannot be recalled\n"
+"• Any SMTP errors will be shown per package\n"
+"\n"
+"The delay can be adjusted in Preferences → Sending.\n"
+"Make sure your SMTP settings and email address are correct."
+msgstr ""
+
+#: src/ddtp_translate/main.py:843 src/ddtp_translate/main.py:908
+msgid "Cancel"
+msgstr ""
+
+#: src/ddtp_translate/main.py:844
+msgid "I understand — Send All"
+msgstr ""
+
+#: src/ddtp_translate/main.py:865
+msgid "Sending Translations"
+msgstr ""
+
+#: src/ddtp_translate/main.py:878
+msgid "Sending translations…"
+msgstr ""
+
+#: src/ddtp_translate/main.py:913
+msgid "Close"
+msgstr ""
+
+#: src/ddtp_translate/main.py:936
 msgid "⏸ Cancelling after current email…"
 msgstr ""
 
+#: src/ddtp_translate/main.py:951
+#, python-brace-format
 msgid "❌ Cancelled by user. {sent}/{total} sent."
 msgstr ""
 
+#: src/ddtp_translate/main.py:958
+#, python-brace-format
+msgid "Sending: {pkg} ({i}/{total})"
+msgstr ""
+
+#: src/ddtp_translate/main.py:982
+#, python-brace-format
+msgid "Next email in {s} seconds…"
+msgstr ""
+
+#: src/ddtp_translate/main.py:988
+#, python-brace-format
+msgid "Done! {sent} sent, {errors} errors out of {total}"
+msgstr ""
+
+#: src/ddtp_translate/main.py:991
+msgid "Sending complete"
+msgstr ""
+
+#: src/ddtp_translate/main.py:1003
+msgid "No packages loaded to export"
+msgstr ""
+
+#: src/ddtp_translate/main.py:1010 src/ddtp_translate/main.py:1077
+msgid "PO files"
+msgstr ""
+
+#: src/ddtp_translate/main.py:1056
+#, python-brace-format
+msgid "Exported {n} packages to {path}"
+msgstr ""
+
+#: src/ddtp_translate/main.py:1094
+msgid ""
+"No translated entries found in file (only entries with translations are "
+"imported)"
+msgstr ""
+
+#: src/ddtp_translate/main.py:1118
+#, python-brace-format
+msgid "Imported {added} new, {updated} updated — {total} in queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:1217
+msgid "Welcome to DDTP Translate"
+msgstr ""
+
+#: src/ddtp_translate/main.py:1219
+msgid ""
+"This app helps you translate Debian package descriptions through the Debian "
+"Description Translation Project (DDTP).\n"
+"\n"
+"How it works:\n"
+"1. Select your language from the dropdown\n"
+"2. Browse packages that need translation\n"
+"3. Write your translation in the editor\n"
+"4. Add to queue or submit directly\n"
+"5. Send the queue — translations are emailed to DDTP\n"
+"\n"
+"Tip: Export as PO, translate in your favorite editor, then import back to "
+"queue many at once.\n"
+"\n"
+"Before submitting, configure SMTP in Preferences (Gmail works well with an "
+"App Password)."
+msgstr ""
+
+#: src/ddtp_translate/main.py:1233
+msgid "Get Started"
+msgstr ""
+
+#: src/ddtp_translate/main.py:1284
+msgid "Translate Debian package descriptions via DDTP"
+msgstr ""

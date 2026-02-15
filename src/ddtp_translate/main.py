@@ -130,6 +130,27 @@ class PreferencesWindow(Adw.PreferencesWindow):
         send_group.add(self.delay_row)
 
         send_page.add(send_group)
+
+        # Max packages setting
+        display_group = Adw.PreferencesGroup(
+            title=_("Display"),
+            description=_("Limit how many packages are loaded into the list for faster startup."),
+        )
+
+        self.max_pkg_row = Adw.ComboRow(title=_("Max packages to display"))
+        max_pkg_model = Gtk.StringList()
+        self._max_pkg_values = [500, 1000, 5000, 0]  # 0 = all
+        for v in self._max_pkg_values:
+            max_pkg_model.append(str(v) if v > 0 else _("All"))
+        self.max_pkg_row.set_model(max_pkg_model)
+        current_max = self.settings.get("max_packages", 500)
+        if current_max in self._max_pkg_values:
+            self.max_pkg_row.set_selected(self._max_pkg_values.index(current_max))
+        else:
+            self.max_pkg_row.set_selected(0)
+        display_group.add(self.max_pkg_row)
+
+        send_page.add(display_group)
         self.add(send_page)
 
         self.connect("close-request", self._on_close)
@@ -150,6 +171,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
                 "from_name": self.name_row.get_text(),
                 "from_email": self.email_row.get_text(),
                 "send_delay": int(self.delay_row.get_value()),
+                "max_packages": self._max_pkg_values[self.max_pkg_row.get_selected()],
             }
         )
         save_settings(self.settings)
@@ -469,8 +491,12 @@ class MainWindow(Adw.ApplicationWindow):
         btn.set_icon_name(
             "view-sort-ascending-symbolic" if self._sort_ascending else "view-sort-descending-symbolic"
         )
-        self.packages.sort(key=lambda p: p.get("package", "").lower(), reverse=not self._sort_ascending)
-        self._populate_list(self.packages)
+        if hasattr(self, '_all_packages'):
+            self._all_packages.sort(key=lambda p: p.get("package", "").lower(), reverse=not self._sort_ascending)
+            self._on_packages_loaded(self._all_packages)
+        else:
+            self.packages.sort(key=lambda p: p.get("package", "").lower(), reverse=not self._sort_ascending)
+            self._populate_list(self.packages)
 
     def _refresh_packages(self, force=False):
         lang = self._current_lang()
@@ -502,12 +528,25 @@ class MainWindow(Adw.ApplicationWindow):
 
         threading.Thread(target=do_fetch, daemon=True).start()
 
+    def _get_max_packages(self):
+        """Get max packages limit from settings (0 = all)."""
+        return self.settings.get("max_packages", 500)
+
     def _on_packages_loaded(self, pkgs):
+        total = len(pkgs)
         self._progress_bar.set_fraction(1.0)
-        self._progress_bar.set_text(_("{n} packages loaded").format(n=len(pkgs)))
+        self._progress_bar.set_text(_("{n} packages loaded").format(n=total))
         GLib.timeout_add(1500, self._hide_progress)
         pkgs.sort(key=lambda p: p.get("package", "").lower(), reverse=not self._sort_ascending)
-        self._populate_list(pkgs)
+        self._all_packages = pkgs  # keep full list for export/search
+        limit = self._get_max_packages()
+        if limit > 0 and len(pkgs) > limit:
+            display_pkgs = pkgs[:limit]
+            self.stats_label.set_text(_("{shown} of {total} untranslated").format(shown=limit, total=total))
+            self._populate_list(display_pkgs, update_stats=False)
+        else:
+            display_pkgs = pkgs
+            self._populate_list(display_pkgs)
 
     def _on_load_error(self, msg):
         self._progress_bar.set_visible(False)
@@ -531,7 +570,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._heatmap_mode = btn.get_active()
         self._sidebar_stack.set_visible_child_name("heatmap" if self._heatmap_mode else "list")
 
-    def _populate_list(self, pkgs):
+    def _populate_list(self, pkgs, update_stats=True):
         self.packages = pkgs
         self._clear_list()
         for pkg in pkgs:
@@ -541,7 +580,8 @@ class MainWindow(Adw.ApplicationWindow):
             label.set_margin_top(4)
             label.set_margin_bottom(4)
             self.pkg_list.append(label)
-        self.stats_label.set_text(_("{n} untranslated").format(n=len(pkgs)))
+        if update_stats:
+            self.stats_label.set_text(_("{n} untranslated").format(n=len(pkgs)))
         self.status_label.set_text(_("Ready"))
 
         # Rebuild heatmap
@@ -982,10 +1022,11 @@ class MainWindow(Adw.ApplicationWindow):
 
         path = gfile.get_path()
         lang = self._current_lang()
+        export_pkgs = getattr(self, '_all_packages', self.packages)
         lines = [
             '# DDTP translations export',
             f'# Language: {lang}',
-            f'# Packages: {len(self.packages)}',
+            f'# Packages: {len(export_pkgs)}',
             '#',
             'msgid ""', 'msgstr ""',
             f'"Language: {lang}\\n"',
@@ -994,7 +1035,7 @@ class MainWindow(Adw.ApplicationWindow):
             '',
         ]
 
-        for pkg in self.packages:
+        for pkg in export_pkgs:
             lines.append(f'#. Package: {pkg["package"]}')
             lines.append(f'#. MD5: {pkg["md5"]}')
             lines.append(f'msgid "{self._po_escape(pkg["short"])}"')
@@ -1012,7 +1053,7 @@ class MainWindow(Adw.ApplicationWindow):
             f.write('\n'.join(lines) + '\n')
 
         self.status_label.set_text(
-            _("Exported {n} packages to {path}").format(n=len(self.packages), path=os.path.basename(path)))
+            _("Exported {n} packages to {path}").format(n=len(export_pkgs), path=os.path.basename(path)))
 
     def _po_escape(self, s):
         return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
