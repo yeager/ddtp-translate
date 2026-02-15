@@ -471,6 +471,8 @@ class DDTPTranslateApp(Adw.Application):
             license_type=Gtk.License.GPL_3_0,
             website="https://github.com/yeager/ddtp-translate",
             issue_url="https://github.com/yeager/ddtp-translate/issues",
+            translate_url="https://app.transifex.com/danielnylander/ddtp-translate/",
+            translator_credits="Daniel Nylander <daniel@danielnylander.se>",
             comments=_("Translate Debian package descriptions via DDTP"),
         )
         about.present()
