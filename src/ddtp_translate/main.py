@@ -82,7 +82,19 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.tls_row.set_active(self.settings.get("smtp_use_tls", False))
         smtp_group.add(self.tls_row)
 
+        # Preset buttons
+        preset_group = Adw.PreferencesGroup(title=_("Quick Setup"))
+
+        gmail_btn = Gtk.Button(label=_("Use Gmail"))
+        gmail_btn.add_css_class("suggested-action")
+        gmail_btn.add_css_class("pill")
+        gmail_btn.set_margin_top(4)
+        gmail_btn.set_margin_bottom(4)
+        gmail_btn.connect("clicked", self._apply_gmail_preset)
+        preset_group.add(gmail_btn)
+
         smtp_page.add(smtp_group)
+        smtp_page.add(preset_group)
 
         # Identity
         id_group = Adw.PreferencesGroup(title=_("Identity"))
@@ -98,6 +110,11 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.add(smtp_page)
 
         self.connect("close-request", self._on_close)
+
+    def _apply_gmail_preset(self, _btn):
+        self.host_row.set_text("smtp.gmail.com")
+        self.port_row.set_text("465")
+        self.tls_row.set_active(True)
 
     def _on_close(self, *_args):
         self.settings.update(
