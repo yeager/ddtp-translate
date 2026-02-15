@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ddtp-translate\n"
 "Report-Msgid-Bugs-To: daniel@danielnylander.se\n"
-"POT-Creation-Date: 2026-02-15 11:02+0100\n"
+"POT-Creation-Date: 2026-02-15 12:19+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/ddtp_translate/main.py:55 src/ddtp_translate/main.py:172
+#: src/ddtp_translate/main.py:55 src/ddtp_translate/main.py:189
 msgid "Preferences"
 msgstr ""
 
@@ -49,90 +49,98 @@ msgstr ""
 msgid "Use TLS"
 msgstr ""
 
+#: src/ddtp_translate/main.py:86
+msgid "Quick Setup"
+msgstr ""
+
 #: src/ddtp_translate/main.py:88
+msgid "Use Gmail"
+msgstr ""
+
+#: src/ddtp_translate/main.py:100
 msgid "Identity"
 msgstr ""
 
-#: src/ddtp_translate/main.py:89
+#: src/ddtp_translate/main.py:101
 msgid "Your Name"
 msgstr ""
 
-#: src/ddtp_translate/main.py:93
+#: src/ddtp_translate/main.py:105
 msgid "Your Email"
 msgstr ""
 
-#: src/ddtp_translate/main.py:122 src/ddtp_translate/main.py:494
+#: src/ddtp_translate/main.py:139 src/ddtp_translate/main.py:511
 msgid "DDTP Translate"
 msgstr ""
 
-#: src/ddtp_translate/main.py:155
+#: src/ddtp_translate/main.py:172
 msgid "Refresh"
 msgstr ""
 
-#: src/ddtp_translate/main.py:161
+#: src/ddtp_translate/main.py:178
 msgid "Toggle heatmap view"
 msgstr ""
 
-#: src/ddtp_translate/main.py:173
+#: src/ddtp_translate/main.py:190
 msgid "About"
 msgstr ""
 
-#: src/ddtp_translate/main.py:188
+#: src/ddtp_translate/main.py:205
 msgid "Filter packages…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:234
+#: src/ddtp_translate/main.py:251
 msgid "Original (English)"
 msgstr ""
 
-#: src/ddtp_translate/main.py:252
+#: src/ddtp_translate/main.py:269
 msgid "Translation"
 msgstr ""
 
-#: src/ddtp_translate/main.py:277 src/ddtp_translate/main.py:341
+#: src/ddtp_translate/main.py:294 src/ddtp_translate/main.py:358
 msgid "Ready"
 msgstr ""
 
-#: src/ddtp_translate/main.py:281
+#: src/ddtp_translate/main.py:298
 msgid "Submit Translation"
 msgstr ""
 
-#: src/ddtp_translate/main.py:307
+#: src/ddtp_translate/main.py:324
 msgid "Loading…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:340
+#: src/ddtp_translate/main.py:357
 #, python-brace-format
 msgid "{n} untranslated"
 msgstr ""
 
-#: src/ddtp_translate/main.py:406
+#: src/ddtp_translate/main.py:423
 #, python-brace-format
 msgid "Editing: {pkg}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:415
+#: src/ddtp_translate/main.py:432
 msgid "Translation is empty"
 msgstr ""
 
-#: src/ddtp_translate/main.py:425
+#: src/ddtp_translate/main.py:442
 msgid "Sending…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:430
+#: src/ddtp_translate/main.py:447
 msgid "Sent successfully!"
 msgstr ""
 
-#: src/ddtp_translate/main.py:432
+#: src/ddtp_translate/main.py:449
 #, python-brace-format
 msgid "Error: {e}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:460
+#: src/ddtp_translate/main.py:477
 msgid "SMTP Setup Required"
 msgstr ""
 
-#: src/ddtp_translate/main.py:462
+#: src/ddtp_translate/main.py:479
 msgid ""
 "To submit translations to DDTP, you need to configure an SMTP server.\n"
 "\n"
@@ -143,14 +151,14 @@ msgid ""
 "You also need to set your name and email address."
 msgstr ""
 
-#: src/ddtp_translate/main.py:469
+#: src/ddtp_translate/main.py:486
 msgid "Later"
 msgstr ""
 
-#: src/ddtp_translate/main.py:470
+#: src/ddtp_translate/main.py:487
 msgid "Open Preferences"
 msgstr ""
 
-#: src/ddtp_translate/main.py:505
+#: src/ddtp_translate/main.py:522
 msgid "Translate Debian package descriptions via DDTP"
 msgstr ""
