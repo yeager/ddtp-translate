@@ -242,7 +242,8 @@ def fetch_untranslated(lang, force_refresh=False):
 
     raise RuntimeError(
         "Could not fetch DDTP data. Both ddtp.debian.org and "
-        "Debian mirror are unreachable."
+        "the Debian mirror (deb.debian.org) are unreachable. "
+        "Please check your internet connection."
     )
 
 

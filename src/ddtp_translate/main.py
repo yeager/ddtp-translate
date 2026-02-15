@@ -550,7 +550,12 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_load_error(self, msg):
         self._progress_bar.set_visible(False)
-        self.status_label.set_text(msg)
+        # Show user-friendly message instead of raw exception
+        if "urlopen" in msg or "Connection refused" in msg or "timed out" in msg or "unreachable" in msg.lower():
+            friendly = _("Could not connect to DDTP servers. Check your internet connection and try again.")
+        else:
+            friendly = _("Failed to load packages: {error}").format(error=msg)
+        self.status_label.set_text(friendly)
 
     def _hide_progress(self):
         self._progress_bar.set_visible(False)

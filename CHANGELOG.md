@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2 (2026-02-15)
+
+### Fixed
+- User-friendly error messages when DDTP/mirror servers are unreachable instead of raw Python exceptions
+- Improved error message in fallback path when both ddtp.debian.org and deb.debian.org mirror are down
+- Verified About dialog (Om) works independently of network connectivity
+
 ## 0.3.1 (2026-02-15)
 
 ### Added
