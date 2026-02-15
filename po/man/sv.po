@@ -2,316 +2,157 @@
 # Copyright (C) YEAR Free Software Foundation, Inc.
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-# 
+#
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-02-15 15:39+0100\n"
+"POT-Creation-Date: 2026-02-15 15:38+0100\n"
 "PO-Revision-Date: 2026-02-15 14:39+0000\n"
-"Language-Team: Swedish (https://app.transifex.com/danielnylander/teams/304710/sv/)\n"
+"Language-Team: Swedish (https://app.transifex.com/danielnylander/"
+"teams/304710/sv/)\n"
+"Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #. type: TH
-#: data/man/po-translate.1:1
+#: data/man/ddtp-translate.1:1
 #, no-wrap
-msgid "PO-TRANSLATE"
+msgid "DDTP-TRANSLATE"
 msgstr ""
 
 #. type: TH
-#: data/man/po-translate.1:1
+#: data/man/ddtp-translate.1:1
 #, no-wrap
 msgid "2026-02-15"
 msgstr ""
 
 #. type: TH
-#: data/man/po-translate.1:1
+#: data/man/ddtp-translate.1:1
 #, no-wrap
 msgid "Daniel Nylander"
 msgstr ""
 
 #. type: TH
-#: data/man/po-translate.1:1
+#: data/man/ddtp-translate.1:1
 #, no-wrap
-msgid "po-translate Manual"
+msgid "DDTP Translate Manual"
 msgstr ""
 
 #. type: SH
-#: data/man/po-translate.1:2
+#: data/man/ddtp-translate.1:2
 #, no-wrap
 msgid "NAME"
 msgstr ""
 
 #. type: Plain text
-#: data/man/po-translate.1:4
-msgid "po-translate - Batch translate PO and TS files using AI"
+#: data/man/ddtp-translate.1:4
+msgid "ddtp-translate - Translate Debian package descriptions via DDTP"
 msgstr ""
 
 #. type: SH
-#: data/man/po-translate.1:4
+#: data/man/ddtp-translate.1:4
 #, no-wrap
 msgid "SYNOPSIS"
 msgstr ""
 
 #. type: Plain text
-#: data/man/po-translate.1:8
-msgid "B<po-translate> [I<OPTIONS>] I<PATHS...>"
+#: data/man/ddtp-translate.1:6
+msgid "B<ddtp-translate>"
 msgstr ""
 
 #. type: SH
-#: data/man/po-translate.1:8
+#: data/man/ddtp-translate.1:6
 #, no-wrap
 msgid "DESCRIPTION"
 msgstr ""
 
 #. type: Plain text
-#: data/man/po-translate.1:10
+#: data/man/ddtp-translate.1:8
 msgid ""
-"B<po-translate> batch translates .po, .ts, and .xliff localization files "
-"using AI or free translation services. It supports 8 translation backends "
-"(Lingva, MyMemory, LibreTranslate, DeepL, Google, OpenAI, Anthropic), custom"
-" glossaries, placeholder preservation, and dry-run mode."
+"B<ddtp-translate> is a GTK4/Adwaita application for translating Debian "
+"package descriptions via DDTP. It provides a side-by-side editor with "
+"original English descriptions and translation area, direct DDTP submission "
+"via email, configurable SMTP settings, local caching, search and filter, and "
+"statistics per language."
 msgstr ""
 
 #. type: SH
-#: data/man/po-translate.1:10
+#: data/man/ddtp-translate.1:8
 #, no-wrap
 msgid "OPTIONS"
 msgstr ""
 
 #. type: TP
-#: data/man/po-translate.1:11
+#: data/man/ddtp-translate.1:9
 #, no-wrap
-msgid "I<PATHS>"
+msgid "B<--help>"
 msgstr ""
 
 #. type: Plain text
-#: data/man/po-translate.1:14
-msgid "Files or directories to translate."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:14
-#, no-wrap
-msgid "B<-s>, B<--source> I<LANG>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:17
-msgid "Source language code (e.g., en). Required."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:17
-#, no-wrap
-msgid "B<-t>, B<--target> I<LANG>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:20
-msgid "Target language code (e.g., sv). Defaults to system LANG."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:20
-#, no-wrap
-msgid "B<--service> I<SERVICE>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:23
-msgid ""
-"Translation service: lingva, mymemory, libretranslate, deepl, deepl-free, "
-"google, openai, anthropic (default: lingva)."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:23
-#, no-wrap
-msgid "B<--api-key> I<KEY>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:26
-msgid "API key for paid services."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:26
-#, no-wrap
-msgid "B<--url> I<URL>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:29
-msgid "Custom URL for LibreTranslate."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:29
-#, no-wrap
-msgid "B<--model> I<MODEL>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:32
-msgid "Model for AI services (e.g., gpt-4o-mini, claude-3-haiku-20240307)."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:32
-#, no-wrap
-msgid "B<--batch-size> I<N>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:35
-msgid "Entries per API call (default: 10)."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:35
-#, no-wrap
-msgid "B<--glossary> I<FILE>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:38
-msgid "CSV glossary file (source,target per line) for custom terms."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:38
-#, no-wrap
-msgid "B<--dry-run>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:41
-msgid "Do not save changes."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:41
-#, no-wrap
-msgid "B<--no-recursive>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:44
-msgid "Do not search subdirectories."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:44
-#, no-wrap
-msgid "B<-V>, B<--verbose>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:47
-msgid "Show detailed progress."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:47
-#, no-wrap
-msgid "B<-v>, B<--version>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:50
-msgid "Show version number and exit."
-msgstr ""
-
-#. type: TP
-#: data/man/po-translate.1:50
-#, no-wrap
-msgid "B<--about>"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:53
-msgid "Show application info and exit."
+#: data/man/ddtp-translate.1:12
+msgid "Show help message and exit."
 msgstr ""
 
 #. type: SH
-#: data/man/po-translate.1:53
-#, no-wrap
-msgid "EXAMPLES"
-msgstr ""
-
-#. type: Plain text
-#: data/man/po-translate.1:59
-#, no-wrap
-msgid ""
-"po-translate -s en -t sv messages.po\n"
-"po-translate -s en --service deepl --api-key KEY translations/\n"
-"po-translate -s en -t de --service openai --model gpt-4o-mini *.po\n"
-"po-translate -s en --glossary terms.csv --dry-run project/\n"
-msgstr ""
-
-#. type: SH
-#: data/man/po-translate.1:60
+#: data/man/ddtp-translate.1:12
 #, no-wrap
 msgid "FILES"
 msgstr ""
 
 #. type: TP
-#: data/man/po-translate.1:61
+#: data/man/ddtp-translate.1:13
 #, no-wrap
-msgid "I<~/.config/po-translate/>"
+msgid "I<~/.config/ddtp-translate/>"
 msgstr ""
 
 #. type: Plain text
-#: data/man/po-translate.1:64
+#: data/man/ddtp-translate.1:16
 msgid "Configuration files."
 msgstr ""
 
 #. type: TP
-#: data/man/po-translate.1:64
+#: data/man/ddtp-translate.1:16
 #, no-wrap
-msgid "I<~/.cache/po-translate/>"
+msgid "I<~/.cache/ddtp-translate/>"
 msgstr ""
 
 #. type: Plain text
-#: data/man/po-translate.1:67
+#: data/man/ddtp-translate.1:19
 msgid "Cached data."
 msgstr ""
 
 #. type: SH
-#: data/man/po-translate.1:67
+#: data/man/ddtp-translate.1:19
 #, no-wrap
 msgid "BUGS"
 msgstr ""
 
 #. type: Plain text
-#: data/man/po-translate.1:69
-msgid "Report bugs at https://github.com/yeager/po-translate/issues"
+#: data/man/ddtp-translate.1:21
+msgid "Report bugs at https://github.com/yeager/ddtp-translate/issues"
 msgstr ""
 
 #. type: SH
-#: data/man/po-translate.1:69
+#: data/man/ddtp-translate.1:21
 #, no-wrap
 msgid "AUTHOR"
 msgstr ""
 
 #. type: Plain text
-#: data/man/po-translate.1:71
+#: data/man/ddtp-translate.1:23
 msgid "Daniel Nylander E<lt>daniel@danielnylander.seE<gt>"
 msgstr ""
 
 #. type: SH
-#: data/man/po-translate.1:71
+#: data/man/ddtp-translate.1:23
 #, no-wrap
 msgid "SEE ALSO"
 msgstr ""
 
 #. type: Plain text
-#: data/man/po-translate.1:72
-msgid "Project homepage: https://github.com/yeager/po-translate"
+#: data/man/ddtp-translate.1:24
+msgid "Project homepage: https://github.com/yeager/ddtp-translate"
 msgstr ""
