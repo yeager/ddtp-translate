@@ -1,10 +1,8 @@
 [Desktop Entry]
 Type=Application
 Name=DDTP Translate
-Name[sv]=Översätt DDTP
 Comment=Translate Debian package descriptions via DDTP
-Comment[sv]=Översätt Debian-paketbeskrivningar via DDTP
-GenericName=Translation Tool
+_GenericName=Translation Tool
 Exec=ddtp-translate
 Icon=se.danielnylander.ddtp-translate
 Terminal=false
