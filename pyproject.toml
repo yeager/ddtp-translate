@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ddtp-translate"
+version = "0.1.0"
+description = "Translate Debian package descriptions via DDTP"
+license = "GPL-3.0-or-later"
+authors = [
+    {name = "Daniel Nylander", email = "daniel@danielnylander.se"},
+]
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Localization",
+    "Environment :: X11 Applications :: GTK",
+]
+
+dependencies = [
+    "PyGObject>=3.42",
+]
+
+[project.scripts]
+ddtp-translate = "ddtp_translate.main:main"
+
+[project.urls]
+Homepage = "https://github.com/yeager/ddtp-translate"
+
+[tool.setuptools.packages.find]
+where = ["src"]

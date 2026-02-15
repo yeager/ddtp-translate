@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3584e4"/>
+      <stop offset="1" stop-color="#1a5fb4"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="16" fill="url(#bg)"/>
+  <!-- Globe -->
+  <circle cx="52" cy="58" r="28" fill="none" stroke="white" stroke-width="3"/>
+  <ellipse cx="52" cy="58" rx="14" ry="28" fill="none" stroke="white" stroke-width="2"/>
+  <line x1="24" y1="58" x2="80" y2="58" stroke="white" stroke-width="2"/>
+  <line x1="30" y1="42" x2="74" y2="42" stroke="white" stroke-width="1.5"/>
+  <line x1="30" y1="74" x2="74" y2="74" stroke="white" stroke-width="1.5"/>
+  <!-- Pencil -->
+  <g transform="translate(72,72) rotate(-45)">
+    <rect x="-4" y="-30" width="8" height="26" rx="1" fill="#f6d32d"/>
+    <polygon points="-4,-4 4,-4 0,6" fill="#f5c211"/>
+    <rect x="-4,-30" y="-30" width="8" height="5" rx="1" fill="#e66100"/>
+  </g>
+  <!-- D letter -->
+  <text x="45" y="67" font-family="sans-serif" font-weight="bold" font-size="24" fill="white" text-anchor="middle">D</text>
+</svg>
