@@ -1,6 +1,7 @@
-# DDTP Translate translation template.
-# Copyright (C) 2026 Daniel Nylander
-# This file is distributed under the same license as the ddtp-translate package.
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Daniel Nylander
+# This file is distributed under the same license as the po-translate package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 # 
 # Translators:
 # Daniel Nylander <po@danielnylander.se>, 2026
@@ -8,149 +9,325 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ddtp-translate 0.2.0\n"
-"Report-Msgid-Bugs-To: daniel@danielnylander.se\n"
-"POT-Creation-Date: 2026-02-15 14:50+0100\n"
-"PO-Revision-Date: 2026-02-15 09:12+0000\n"
+"Project-Id-Version: po-translate\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-02-14 11:36+0100\n"
+"PO-Revision-Date: 2026-02-15 07:21+0000\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>, 2026\n"
-"Language-Team: Swedish (https://app.transifex.com/danielnylander/teams/304806/sv/)\n"
+"Language-Team: Swedish (https://app.transifex.com/danielnylander/teams/304710/sv/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgid "Preferences"
-msgstr "Inställningar"
+#: po_translate.py:739
+#, python-brace-format
+msgid "   Parsed in {elapsed:.3f}s"
+msgstr "   Tolkades på {elapsed:.3f}s"
 
-msgid "SMTP"
-msgstr "SMTP"
+#: po_translate.py:748
+#, python-brace-format
+msgid "   Total entries in file: {count}"
+msgstr "   Totalt antal poster i filen: {count}"
 
-msgid "Mail Server"
-msgstr "E-postserver"
+#: po_translate.py:773
+#, python-brace-format
+msgid "       Strings: {count}, chars: {chars}"
+msgstr "       Strängar: {count}, tecken: {chars}"
 
-msgid "SMTP Host"
-msgstr "SMTP-värd"
+#: po_translate.py:797
+#, python-brace-format
+msgid "       API response: {elapsed:.2f}s ({speed:.0f} chars/s)"
+msgstr "       API-svar: {elapsed:.2f}s ({speed:.0f} tecken/s)"
 
-msgid "SMTP Port"
-msgstr "SMTP-port"
+#: po_translate.py:815
+#, python-brace-format
+msgid "   File completed in {elapsed:.2f}s (API time: {api:.2f}s)"
+msgstr "   Fil färdigställdes på {elapsed:.2f}s (API-tid: {api:.2f}s)"
 
-msgid "Username"
-msgstr "Användarnamn"
+#: po_translate.py:817 po_translate.py:1038
+#, python-brace-format
+msgid "   Characters: {source} source → {target} target"
+msgstr "   Tecken: {source} källa → {target} mål"
 
-msgid "Password"
-msgstr "Lösenord"
+#: po_translate.py:854
+msgid "positional arguments"
+msgstr "positionsargument"
 
-msgid "Use TLS"
-msgstr "Använd TLS"
+#: po_translate.py:855 po_translate.py:856
+msgid "options"
+msgstr "flaggor"
 
-msgid "Quick Setup"
-msgstr "Snabbkonfiguration"
+#: po_translate.py:864
+msgid "po-translate - Batch translate .po and .ts files"
+msgstr "po-translate - Massöversättning av .po- och .ts-filer"
 
-msgid "Use Gmail"
-msgstr "Använd Gmail"
-
-msgid "Identity"
-msgstr "Identitet"
-
-msgid "Your Name"
-msgstr "Ditt namn"
-
-msgid "Your Email"
-msgstr "Din e-postadress"
-
-msgid "Sending"
+#: po_translate.py:867
+msgid ""
+"\n"
+"Examples:\n"
+"  # Translate with free Lingva service\n"
+"  po-translate --source en --target sv ./translations/\n"
+"  \n"
+"  # Translate with OpenAI\n"
+"  po-translate --service openai --api-key sk-xxx --source en --target de ./po/\n"
+"  \n"
+"  # Dry run (don't save)\n"
+"  po-translate --dry-run --source en --target fr messages.po\n"
+"  \n"
+"  # Translate single file\n"
+"  po-translate --source en --target ja ./resources/strings.po\n"
+"\n"
+"Services (free):\n"
+"  lingva        Google Translate frontend (default)\n"
+"  mymemory      1000 words/day free\n"
+"  libretranslate  Self-hosted or public instances\n"
+"\n"
+"Services (API key required):\n"
+"  deepl         DeepL Pro (best for European languages)\n"
+"  deepl-free    DeepL Free API\n"
+"  google        Google Cloud Translation\n"
+"  openai        GPT models (context-aware)\n"
+"  anthropic     Claude models (context-aware)\n"
+"        "
 msgstr ""
+"\n"
+"Exempel:\n"
+"  # Översätt med gratis Lingva-tjänst\n"
+"  po-translate --source en --target sv ./translations/\n"
+"\n"
+"  # Översätt med OpenAI\n"
+"  po-translate --service openai --api-key sk-xxx --source en --target de ./po/\n"
+"\n"
+"  # Torrkörning (spara inte)\n"
+"  po-translate --dry-run --source en --target fr messages.po\n"
+"\n"
+"  # Översätt enstaka fil po-translate --source en --target ja ./resources/strings.po\n"
+"\n"
+"  Tjänster (gratis):\n"
+"  lingva        Google Translate frontend (standard)\n"
+"  mymemory      1000 ord/dag gratis\n"
+"  libretranslate  Självhostade eller offentliga instanser\n"
+"\n"
+"  Tjänster (API-nyckel krävs):\n"
+"  deepl         DeepL Pro (bäst för europeiska språk)\n"
+"  deepl-free    DeepL Free API\n"
+"  google        Google Cloud Translation\n"
+"  openai        GPT-modeller (kontextmedvetna)\n"
+"  anthropic     Claude-modeller (kontextmedvetna)\n"
+"        "
 
-msgid "Rate Limiting"
-msgstr ""
+#: po_translate.py:895
+msgid "Files or directories to translate"
+msgstr "Filer eller kataloger att översätta"
 
-msgid "Delay between email submissions to avoid flooding the DDTP server."
-msgstr ""
+#: po_translate.py:896
+msgid "Source language code (e.g., en)"
+msgstr "Källspråkskod (t.ex. en)"
 
-msgid "Delay between emails (seconds)"
-msgstr ""
+#: po_translate.py:897
+msgid "Target language code (e.g., sv, de, fr). Defaults to system LANG."
+msgstr "Målspråkkod (t.ex. sv, de, fr). Standard är systemets LANG."
 
-msgid "DDTP Translate"
-msgstr "Översätt DDTP"
+#: po_translate.py:900
+msgid "Translation service (default: lingva)"
+msgstr "Översättningstjänst (standard: lingva)"
 
-msgid "Refresh"
-msgstr "Uppdatera"
+#: po_translate.py:901
+msgid "API key for paid services"
+msgstr "API-nyckel för betaltjänster"
 
-msgid "Sort packages"
-msgstr ""
+#: po_translate.py:902
+msgid "Custom URL for LibreTranslate"
+msgstr "Anpassad URL för LibreTranslate"
 
-msgid "Toggle heatmap view"
-msgstr "Växla värmekarta"
+#: po_translate.py:903
+msgid "Model for AI services (e.g., gpt-4o-mini, claude-3-haiku-20240307)"
+msgstr "Modell för AI-tjänster (t.ex. gpt-4o-mini, claude-3-haiku-20240307)"
 
-msgid "About"
-msgstr "Om"
+#: po_translate.py:904
+msgid "Entries per API call (default: 10)"
+msgstr "Antal poster per API-anrop (standard: 10)"
 
-msgid "Filter packages…"
-msgstr "Filtrera paket…"
+#: po_translate.py:905
+msgid "CSV glossary file (source,target per line) for custom terms"
+msgstr "CSV-ordlista (källa, mål per rad) för anpassade termer"
 
-msgid "Original (English)"
-msgstr "Original (engelska)"
+#: po_translate.py:906
+msgid "Don't save changes"
+msgstr "Spara inte ändringarna"
 
-msgid "Translation"
-msgstr "Översättning"
+#: po_translate.py:907
+msgid "Don't search subdirectories"
+msgstr "Sök inte i underkataloger"
 
-msgid "Ready"
-msgstr "Redo"
+#: po_translate.py:908
+msgid "Show detailed progress"
+msgstr "Visa detaljerat förlopp"
 
-msgid "Submit Translation"
-msgstr "Skicka in översättning"
+#: po_translate.py:909
+msgid "Show this help message and exit"
+msgstr "Visa detta hjälpmeddelande och avsluta"
 
-msgid "Loading…"
-msgstr "Läser in…"
+#: po_translate.py:911
+msgid "Show version number and exit"
+msgstr "Visa versionsnummer och avsluta"
 
-msgid "Downloading package data…"
-msgstr ""
+#: po_translate.py:912
+msgid "Show application info and exit"
+msgstr "Visa applikationsinformation och avsluta"
 
-msgid "{n} packages loaded"
-msgstr ""
+#: po_translate.py:934
+#, python-brace-format
+msgid "🔧 po-translate {version} starting..."
+msgstr "🔧 po-translate {version} startar..."
 
-msgid "{n} untranslated"
-msgstr "{n} icke-översatta"
+#: po_translate.py:935
+#, python-brace-format
+msgid "   Source language: {lang}"
+msgstr "   Källspråk: {lang}"
 
-msgid "Editing: {pkg}"
-msgstr "Redigerar: {pkg}"
+#: po_translate.py:936
+#, python-brace-format
+msgid "   Service: {service}"
+msgstr "   Tjänst: {service}"
 
-msgid "Translation is empty"
-msgstr "Översättningen är tom"
+#: po_translate.py:937
+#, python-brace-format
+msgid "   Batch size: {size}"
+msgstr "   Batchstorlek: {size}"
 
-msgid "SMTP not configured — open Preferences first"
-msgstr ""
+#: po_translate.py:938
+#, python-brace-format
+msgid "   Dry run: {dry}"
+msgstr "   Torrkörning: {dry}"
 
-msgid "Please wait {s} seconds before sending again"
-msgstr ""
+#: po_translate.py:947
+msgid "❌ Error: --target required (could not detect from LANG environment)"
+msgstr "❌ Fel: --target krävs (kunde inte upptäckas från LANG-miljön)"
 
-msgid "Ready — sending…"
-msgstr ""
+#: po_translate.py:949
+#, python-brace-format
+msgid "ℹ️  Using target language from LANG: {lang}"
+msgstr "ℹ️ Använda målspråket från LANG: {lang}"
 
-msgid "Rate limit: sending in {s} seconds…"
-msgstr ""
+#: po_translate.py:961
+#, python-brace-format
+msgid "❌ Error: {error}"
+msgstr "❌ Fel: {error}"
 
-msgid "Sending…"
-msgstr "Skickar…"
+#: po_translate.py:964
+#, python-brace-format
+msgid "   Target language: {lang}"
+msgstr "   Målspråk: {lang}"
 
-msgid "Sent successfully!"
-msgstr "Inskickad!"
+#: po_translate.py:967
+msgid "📂 Scanning for files..."
+msgstr "📂 Söker efter filer..."
 
-msgid "Error: {e}"
-msgstr "Fel: {e}"
+#: po_translate.py:971
+msgid "❌ No .po, .ts, or .xliff files found"
+msgstr "❌ Inga .po-, .ts- eller .xliff-filer hittades"
 
-msgid "Welcome to DDTP Translate"
-msgstr ""
+#: po_translate.py:974
+#, python-brace-format
+msgid "   Found {count} files to process"
+msgstr "   Hittade {count} filer att bearbeta"
 
-msgid "Get Started"
-msgstr ""
+#: po_translate.py:980
+#, python-brace-format
+msgid "   Loaded glossary: {count} terms"
+msgstr "   Läste in ordlista: {count} termer"
 
-msgid "Translate Debian package descriptions via DDTP"
-msgstr "Översätt Debian-paketbeskrivningar via DDTP"
+#: po_translate.py:982
+#, python-brace-format
+msgid "🌐 po-translate - {source} → {target}"
+msgstr "🌐 po-translate - {source} → {target}"
 
-msgid "Translation Tool"
-msgstr ""
+#: po_translate.py:983
+#, python-brace-format
+msgid "📦 Service: {service}"
+msgstr "📦 Tjänst: {service}"
 
-msgid "debian;translation;ddtp;localization;l10n;"
-msgstr ""
+#: po_translate.py:984
+#, python-brace-format
+msgid "📂 Files: {count}"
+msgstr "📂 Filer: {count}"
+
+#: po_translate.py:996
+#, python-brace-format
+msgid "📄 [{current}/{total}] Processing: {file}"
+msgstr "📄 [{current}/{total}] Bearbetar: {file}"
+
+#: po_translate.py:1013
+#, python-brace-format
+msgid "  ❌ {error}"
+msgstr "  ❌ {error}"
+
+#: po_translate.py:1014
+msgid "   Error processing file"
+msgstr "   Fel vid bearbetning av fil"
+
+#: po_translate.py:1021
+#, python-brace-format
+msgid "   Translated {count} of {total} entries"
+msgstr "   Översatte {count} av {total} poster"
+
+#: po_translate.py:1025
+#, python-brace-format
+msgid "  ❌ Error: {error}"
+msgstr "  ❌ Fel: {error}"
+
+#: po_translate.py:1026
+#, python-brace-format
+msgid "   Exception: {type}"
+msgstr "   Undantag: {type}"
+
+#: po_translate.py:1034
+msgid "📊 Summary:"
+msgstr "📊 Sammanfattning:"
+
+#: po_translate.py:1035
+#, python-brace-format
+msgid "   Files processed: {count}"
+msgstr "   Bearbetade filer: {count}"
+
+#: po_translate.py:1036
+#, python-brace-format
+msgid "   Strings translated: {count}"
+msgstr "   Översatta strängar: {count}"
+
+#: po_translate.py:1037 po_translate.py:1050
+#, python-brace-format
+msgid "   Total entries: {count}"
+msgstr "   Totalt antal poster: {count}"
+
+#: po_translate.py:1040
+#, python-brace-format
+msgid "   Service used: {service}"
+msgstr "   Använd tjänst: {service}"
+
+#: po_translate.py:1041
+#, python-brace-format
+msgid "   Total API time: {time:.2f}s"
+msgstr "   Total API-tid: {time:.2f}s"
+
+#: po_translate.py:1042
+#, python-brace-format
+msgid "   Total elapsed time: {time:.2f}s"
+msgstr "   Total förfluten tid: {time:.2f}s"
+
+#: po_translate.py:1044
+#, python-brace-format
+msgid "   Average speed: {speed:.0f} chars/s"
+msgstr "   Genomsnittlig hastighet: {speed:.0f} tecken/s"
+
+#: po_translate.py:1049
+#, python-brace-format
+msgid "✅ Done! Translated {count} strings"
+msgstr "✅ Klart! Översatte {count} strängar"
+
+#: po_translate.py:1053
+msgid "   (dry run - no files modified)"
+msgstr "   (torrkörning – inga filer ändras)"
