@@ -212,8 +212,20 @@ class MainWindow(Adw.ApplicationWindow):
         self.stats_label.add_css_class("dim-label")
         header.pack_start(self.stats_label)
 
+        # Export PO button
+        export_btn = Gtk.Button(icon_name="document-save-symbolic", tooltip_text=_("Export as PO file"))
+        export_btn.connect("clicked", self._on_export_po)
+        header.pack_end(export_btn)
+
+        # Import PO button
+        import_btn = Gtk.Button(icon_name="document-open-symbolic", tooltip_text=_("Import translated PO file"))
+        import_btn.connect("clicked", self._on_import_po)
+        header.pack_end(import_btn)
+
         # Hamburger menu
         menu = Gio.Menu()
+        menu.append(_("Export as PO file…"), "app.export-po")
+        menu.append(_("Import translated PO…"), "app.import-po")
         menu.append(_("Preferences"), "app.preferences")
         menu.append(_("About"), "app.about")
         menu_btn = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu)
@@ -556,6 +568,272 @@ class MainWindow(Adw.ApplicationWindow):
 
         GLib.timeout_add(1000, tick)
 
+    # --- PO Export/Import ---
+
+    def _on_export_po(self, *_args):
+        """Export all loaded untranslated packages as a PO file for batch translation."""
+        if not self.packages:
+            self.status_label.set_text(_("No packages loaded to export"))
+            return
+
+        lang = self._current_lang()
+
+        dialog = Gtk.FileDialog()
+        dialog.set_initial_name(f"ddtp-{lang}.po")
+        fil = Gtk.FileFilter()
+        fil.set_name(_("PO files"))
+        fil.add_pattern("*.po")
+        filters = Gio.ListStore.new(Gtk.FileFilter)
+        filters.append(fil)
+        dialog.set_filters(filters)
+
+        dialog.save(self, None, self._on_export_po_response)
+
+    def _on_export_po_response(self, dialog, result):
+        try:
+            gfile = dialog.save_finish(result)
+        except GLib.Error:
+            return  # cancelled
+
+        path = gfile.get_path()
+        lang = self._current_lang()
+        lines = []
+        lines.append('# DDTP translations export')
+        lines.append(f'# Language: {lang}')
+        lines.append(f'# Packages: {len(self.packages)}')
+        lines.append('#')
+        lines.append('msgid ""')
+        lines.append('msgstr ""')
+        lines.append(f'"Language: {lang}\\n"')
+        lines.append('"Content-Type: text/plain; charset=UTF-8\\n"')
+        lines.append('"Content-Transfer-Encoding: 8bit\\n"')
+        lines.append('')
+
+        for pkg in self.packages:
+            lines.append(f'#. Package: {pkg["package"]}')
+            lines.append(f'#. MD5: {pkg["md5"]}')
+            # msgid = short description + long description
+            desc = pkg["short"]
+            if pkg["long"]:
+                desc += "\\n\\n" + pkg["long"].replace("\n", "\\n")
+            lines.append(f'msgid "{self._po_escape(pkg["short"])}"')
+            lines.append(f'msgstr ""')
+            lines.append('')
+            if pkg["long"]:
+                lines.append(f'#. Long description for {pkg["package"]}')
+                # Use msgctxt to distinguish short vs long
+                lines.append(f'msgctxt "long:{pkg["package"]}"')
+                escaped = self._po_escape_multiline(pkg["long"])
+                lines.append(f'msgid {escaped}')
+                lines.append(f'msgstr ""')
+                lines.append('')
+
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines) + '\n')
+
+        self.status_label.set_text(
+            _("Exported {n} packages to {path}").format(n=len(self.packages), path=os.path.basename(path))
+        )
+
+    def _po_escape(self, s):
+        return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+
+    def _po_escape_multiline(self, s):
+        """Escape a multiline string for PO format."""
+        lines = s.split('\n')
+        if len(lines) == 1:
+            return f'"{self._po_escape(s)}"'
+        parts = ['""']
+        for i, line in enumerate(lines):
+            escaped = self._po_escape(line)
+            if i < len(lines) - 1:
+                parts.append(f'"{escaped}\\n"')
+            else:
+                parts.append(f'"{escaped}"')
+        return '\n'.join(parts)
+
+    def _on_import_po(self, *_args):
+        """Import a translated PO file and batch-submit translations."""
+        dialog = Gtk.FileDialog()
+        fil = Gtk.FileFilter()
+        fil.set_name(_("PO files"))
+        fil.add_pattern("*.po")
+        filters = Gio.ListStore.new(Gtk.FileFilter)
+        filters.append(fil)
+        dialog.set_filters(filters)
+
+        dialog.open(self, None, self._on_import_po_response)
+
+    def _on_import_po_response(self, dialog, result):
+        try:
+            gfile = dialog.open_finish(result)
+        except GLib.Error:
+            return  # cancelled
+
+        path = gfile.get_path()
+        translations = self._parse_imported_po(path)
+
+        if not translations:
+            self.status_label.set_text(_("No translations found in file"))
+            return
+
+        # Show confirmation before batch sending
+        settings = load_settings()
+        delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
+
+        confirm = Adw.MessageDialog(
+            transient_for=self,
+            heading=_("Submit {n} translations?").format(n=len(translations)),
+            body=_(
+                "Found {n} translated descriptions.\n\n"
+                "They will be sent to DDTP one by one with a {delay}-second "
+                "delay between each email to avoid flooding the server.\n\n"
+                "Estimated time: {time}"
+            ).format(
+                n=len(translations),
+                delay=delay,
+                time=self._format_duration(len(translations) * delay),
+            ),
+        )
+        confirm.add_response("cancel", _("Cancel"))
+        confirm.add_response("send", _("Send All"))
+        confirm.set_response_appearance("send", Adw.ResponseAppearance.SUGGESTED)
+
+        def on_confirm(d, response):
+            d.close()
+            if response == "send":
+                self._batch_send(translations)
+
+        confirm.connect("response", on_confirm)
+        confirm.present()
+
+    def _format_duration(self, seconds):
+        if seconds < 60:
+            return _("{s} seconds").format(s=int(seconds))
+        minutes = seconds / 60
+        if minutes < 60:
+            return _("{m} minutes").format(m=int(minutes))
+        hours = minutes / 60
+        return _("{h}h {m}m").format(h=int(hours), m=int(minutes % 60))
+
+    def _parse_imported_po(self, path):
+        """Parse a PO file exported by this app, returning list of (package, md5, short, long)."""
+        translations = []
+        current_pkg = None
+        current_md5 = None
+        current_context = None
+        in_msgstr = False
+        msgstr_lines = []
+        msgid_text = ""
+
+        with open(path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+
+        def flush():
+            nonlocal current_pkg, current_md5, current_context, msgstr_lines, msgid_text
+            text = ''.join(msgstr_lines).replace('\\n', '\n').strip()
+            if text and current_pkg and current_md5:
+                # Find or create entry
+                entry = None
+                for t in translations:
+                    if t[0] == current_pkg and t[1] == current_md5:
+                        entry = t
+                        break
+                if current_context and current_context.startswith("long:"):
+                    if entry:
+                        # Update long description
+                        translations[translations.index(entry)] = (entry[0], entry[1], entry[2], text)
+                    else:
+                        translations.append((current_pkg, current_md5, "", text))
+                else:
+                    if entry:
+                        translations[translations.index(entry)] = (entry[0], entry[1], text, entry[3])
+                    else:
+                        translations.append((current_pkg, current_md5, text, ""))
+
+        for line in lines:
+            line = line.rstrip('\n')
+            if line.startswith('#. Package: '):
+                current_pkg = line[12:].strip()
+            elif line.startswith('#. MD5: '):
+                current_md5 = line[8:].strip()
+            elif line.startswith('msgctxt "long:'):
+                current_context = line.split('"')[1]
+            elif line.startswith('msgctxt '):
+                current_context = None
+            elif line.startswith('msgid '):
+                if in_msgstr:
+                    flush()
+                    msgstr_lines = []
+                in_msgstr = False
+                msgid_text = line[6:].strip().strip('"')
+            elif line.startswith('msgstr '):
+                in_msgstr = True
+                msgstr_lines = [self._po_unescape(line[7:].strip().strip('"'))]
+            elif in_msgstr and line.startswith('"'):
+                msgstr_lines.append(self._po_unescape(line.strip().strip('"')))
+            elif not line.strip():
+                if in_msgstr:
+                    flush()
+                    msgstr_lines = []
+                    in_msgstr = False
+
+        if in_msgstr:
+            flush()
+
+        # Filter out entries with empty short description
+        return [(p, m, s, l) for p, m, s, l in translations if s]
+
+    def _po_unescape(self, s):
+        return s.replace('\\n', '\n').replace('\\"', '"').replace('\\\\', '\\')
+
+    def _batch_send(self, translations):
+        """Send translations one by one with delay."""
+        lang = self._current_lang()
+        settings = load_settings()
+        delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
+        total = len(translations)
+
+        self.submit_btn.set_sensitive(False)
+        self._progress_bar.set_visible(True)
+        self._progress_bar.set_fraction(0.0)
+
+        def send_batch():
+            for i, (pkg, md5, short, long_text) in enumerate(translations):
+                GLib.idle_add(
+                    self.status_label.set_text,
+                    _("Sending {i}/{total}: {pkg}…").format(i=i + 1, total=total, pkg=pkg),
+                )
+                GLib.idle_add(self._progress_bar.set_fraction, (i + 1) / total)
+
+                try:
+                    send_translation(pkg, md5, lang, short, long_text, settings)
+                except Exception as exc:
+                    GLib.idle_add(
+                        self.status_label.set_text,
+                        _("Error on {pkg}: {e}").format(pkg=pkg, e=str(exc)),
+                    )
+                    break
+
+                # Rate limit delay (skip after last one)
+                if i < total - 1 and delay > 0:
+                    for sec in range(int(delay), 0, -1):
+                        GLib.idle_add(
+                            self.status_label.set_text,
+                            _("Sent {i}/{total} — next in {s}s").format(i=i + 1, total=total, s=sec),
+                        )
+                        time.sleep(1)
+            else:
+                GLib.idle_add(
+                    self.status_label.set_text,
+                    _("Done! Sent {total} translations").format(total=total),
+                )
+
+            GLib.idle_add(self.submit_btn.set_sensitive, True)
+            GLib.idle_add(self._progress_bar.set_visible, False)
+
+        threading.Thread(target=send_batch, daemon=True).start()
+
     def _do_send(self, text):
         lines = text.split("\n", 1)
         short = lines[0]
@@ -586,6 +864,8 @@ class DDTPTranslateApp(Adw.Application):
 
         self.create_action("preferences", self._on_preferences)
         self.create_action("about", self._on_about)
+        self.create_action("export-po", self._on_export_po_action)
+        self.create_action("import-po", self._on_import_po_action)
         self._first_run_shown = False
 
     def do_activate(self):
@@ -633,6 +913,16 @@ class DDTPTranslateApp(Adw.Application):
         action = Gio.SimpleAction(name=name)
         action.connect("activate", callback)
         self.add_action(action)
+
+    def _on_export_po_action(self, *_args):
+        win = self.props.active_window
+        if win:
+            win._on_export_po()
+
+    def _on_import_po_action(self, *_args):
+        win = self.props.active_window
+        if win:
+            win._on_import_po()
 
     def _on_preferences(self, *_args):
         win = PreferencesWindow(self.props.active_window)
