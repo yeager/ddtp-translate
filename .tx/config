@@ -6,3 +6,9 @@ file_filter  = po/<lang>.po
 source_file  = po/ddtp-translate.pot
 source_lang  = en
 type         = PO
+
+[o:danielnylander:p:ddtp-translate:r:ddtp-translate-man]
+file_filter  = po/man/<lang>.po
+source_file  = po/man/ddtp-translate.1.pot
+source_lang  = en
+type         = PO
