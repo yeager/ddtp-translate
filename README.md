@@ -1,14 +1,12 @@
 # DDTP Translate
 
-A GTK4/Adwaita desktop application for translating Debian package descriptions via the [Debian Description Translation Project (DDTP)](https://ddtp.debian.org/).
-
-![License](https://img.shields.io/badge/license-GPL--3.0-blue)
+A GTK4/Adwaita application for translating Debian package descriptions via DDTP.
 
 ## Features
 
 - Browse untranslated Debian package descriptions for any language
 - Side-by-side editor: original English description + translation area
-- Submit translations directly to DDTP via email (pdesc@ddtp.debian.org)
+- Submit translations directly to DDTP via email
 - Configurable SMTP settings
 - Local caching with 1-hour TTL
 - Search and filter packages
@@ -17,15 +15,17 @@ A GTK4/Adwaita desktop application for translating Debian package descriptions v
 
 ## Installation
 
-### From .deb (Debian/Ubuntu)
+### Debian/Ubuntu
 
 ```bash
+# Add repository
+curl -fsSL https://yeager.github.io/debian-repo/KEY.gpg | sudo gpg --dearmor -o /usr/share/keyrings/yeager-archive-keyring.gpg
 echo "deb [signed-by=/usr/share/keyrings/yeager-archive-keyring.gpg] https://yeager.github.io/debian-repo stable main" | sudo tee /etc/apt/sources.list.d/yeager.list
-curl -fsSL https://yeager.github.io/debian-repo/yeager-archive-keyring.gpg | sudo tee /usr/share/keyrings/yeager-archive-keyring.gpg > /dev/null
-sudo apt update && sudo apt install ddtp-translate
+sudo apt update
+sudo apt install ddtp-translate
 ```
 
-### From .rpm (Fedora/RHEL)
+### Fedora/RHEL
 
 ```bash
 sudo dnf config-manager --add-repo https://yeager.github.io/rpm-repo/yeager.repo
@@ -39,31 +39,27 @@ pip install .
 ddtp-translate
 ```
 
-## Requirements
+## 🌍 Contributing Translations
 
-- Python 3.9+
-- GTK 4
-- libadwaita 1.x
-- PyGObject
+Help translate this app into your language! All translations are managed via Transifex.
 
-## Usage
+**→ [Translate on Transifex](https://app.transifex.com/danielnylander/ddtp-translate/)**
 
-1. Select your target language from the dropdown
-2. Browse or search for untranslated packages in the sidebar
-3. Click a package to see its English description
-4. Write your translation in the right panel
-5. Click **Submit Translation** to send via email to DDTP
+### How to contribute:
+1. Visit the [Transifex project page](https://app.transifex.com/danielnylander/ddtp-translate/)
+2. Create a free account (or log in)
+3. Select your language and start translating
 
-Configure your SMTP settings in **Preferences** (hamburger menu → Preferences).
+### Currently supported languages:
+Arabic, Czech, Danish, German, Spanish, Finnish, French, Italian, Japanese, Korean, Norwegian Bokmål, Dutch, Polish, Brazilian Portuguese, Russian, Swedish, Ukrainian, Chinese (Simplified)
 
-## Contributing
+### Notes:
+- Please do **not** submit pull requests with .po file changes — they are synced automatically from Transifex
+- Source strings are pushed to Transifex daily via GitHub Actions
+- Translations are pulled back and included in releases
 
-Translations are managed on [Transifex](https://www.transifex.com/danielnylander/ddtp-translate/).
+New language? Open an [issue](https://github.com/yeager/ddtp-translate/issues) and we'll add it!
 
 ## License
 
-GPL-3.0-or-later — see [LICENSE](LICENSE).
-
-## Author
-
-Daniel Nylander <daniel@danielnylander.se>
+GPL-3.0-or-later — Daniel Nylander <daniel@danielnylander.se>
