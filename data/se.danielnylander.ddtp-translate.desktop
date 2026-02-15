@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=DDTP Translate
+Comment=Translate Debian package descriptions via DDTP
+_GenericName=Translation Tool
+Exec=ddtp-translate
+Icon=se.danielnylander.ddtp-translate
+Terminal=false
+Categories=Development;Translation;
+Keywords=debian;translation;ddtp;localization;l10n;

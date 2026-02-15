@@ -11,7 +11,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 
 from . import __version__
 from .ddtp_api import DDTP_LANGUAGES, fetch_untranslated
@@ -33,6 +33,18 @@ gettext.textdomain("ddtp-translate")
 _ = gettext.gettext
 
 APP_ID = "se.danielnylander.ddtp-translate"
+
+
+def _setup_heatmap_css():
+    css = b"""
+    .heatmap-green { background-color: #26a269; color: white; border-radius: 8px; }
+    .heatmap-red { background-color: #c01c28; color: white; border-radius: 8px; }
+    .heatmap-gray { background-color: #77767b; color: white; border-radius: 8px; }
+    """
+    provider = Gtk.CssProvider()
+    provider.load_from_data(css)
+    Gtk.StyleContext.add_provider_for_display(
+        Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
 
 class PreferencesWindow(Adw.PreferencesWindow):
@@ -112,6 +124,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.packages = []
         self.current_pkg = None
         self.settings = load_settings()
+        self._heatmap_mode = False
+
+        _setup_heatmap_css()
 
         # Main layout
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -140,6 +155,12 @@ class MainWindow(Adw.ApplicationWindow):
         refresh_btn = Gtk.Button(icon_name="view-refresh-symbolic", tooltip_text=_("Refresh"))
         refresh_btn.connect("clicked", self._on_refresh)
         header.pack_start(refresh_btn)
+
+        # Heatmap toggle
+        self._heatmap_btn = Gtk.ToggleButton(icon_name="view-grid-symbolic")
+        self._heatmap_btn.set_tooltip_text(_("Toggle heatmap view"))
+        self._heatmap_btn.connect("toggled", self._on_heatmap_toggled)
+        header.pack_start(self._heatmap_btn)
 
         # Stats label
         self.stats_label = Gtk.Label(label="")
@@ -178,7 +199,26 @@ class MainWindow(Adw.ApplicationWindow):
         self.pkg_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.pkg_list.connect("row-selected", self._on_pkg_selected)
         scroll.set_child(self.pkg_list)
-        sidebar_box.append(scroll)
+
+        # Heatmap view for sidebar
+        hm_scroll = Gtk.ScrolledWindow(vexpand=True)
+        self._heatmap_flow = Gtk.FlowBox()
+        self._heatmap_flow.set_selection_mode(Gtk.SelectionMode.NONE)
+        self._heatmap_flow.set_homogeneous(True)
+        self._heatmap_flow.set_min_children_per_line(2)
+        self._heatmap_flow.set_max_children_per_line(4)
+        self._heatmap_flow.set_column_spacing(4)
+        self._heatmap_flow.set_row_spacing(4)
+        self._heatmap_flow.set_margin_start(6)
+        self._heatmap_flow.set_margin_end(6)
+        self._heatmap_flow.set_margin_top(6)
+        self._heatmap_flow.set_margin_bottom(6)
+        hm_scroll.set_child(self._heatmap_flow)
+
+        self._sidebar_stack = Gtk.Stack()
+        self._sidebar_stack.add_named(scroll, "list")
+        self._sidebar_stack.add_named(hm_scroll, "heatmap")
+        sidebar_box.append(self._sidebar_stack)
 
         paned.set_start_child(sidebar_box)
 
@@ -283,6 +323,10 @@ class MainWindow(Adw.ApplicationWindow):
                 break
             self.pkg_list.remove(row)
 
+    def _on_heatmap_toggled(self, btn):
+        self._heatmap_mode = btn.get_active()
+        self._sidebar_stack.set_visible_child_name("heatmap" if self._heatmap_mode else "list")
+
     def _populate_list(self, pkgs):
         self.packages = pkgs
         self._clear_list()
@@ -295,6 +339,41 @@ class MainWindow(Adw.ApplicationWindow):
             self.pkg_list.append(label)
         self.stats_label.set_text(_("{n} untranslated").format(n=len(pkgs)))
         self.status_label.set_text(_("Ready"))
+
+        # Rebuild heatmap
+        while True:
+            child = self._heatmap_flow.get_first_child()
+            if child is None:
+                break
+            self._heatmap_flow.remove(child)
+        for i, pkg in enumerate(pkgs):
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+            box.set_size_request(100, 44)
+            box.add_css_class("heatmap-red")  # all untranslated
+            box.set_margin_start(2)
+            box.set_margin_end(2)
+            box.set_margin_top(2)
+            box.set_margin_bottom(2)
+            lbl = Gtk.Label(label=pkg["package"])
+            lbl.set_ellipsize(Pango.EllipsizeMode.END)
+            lbl.set_max_width_chars(14)
+            lbl.set_margin_top(4)
+            lbl.set_margin_start(4)
+            lbl.set_margin_end(4)
+            lbl.set_margin_bottom(4)
+            box.append(lbl)
+            box.set_tooltip_text(pkg["package"])
+            gesture = Gtk.GestureClick()
+            gesture.connect("released", lambda g, n, x, y, idx=i: self._select_pkg_by_index(idx))
+            box.add_controller(gesture)
+            box.set_cursor(Gdk.Cursor.new_from_name("pointer"))
+            self._heatmap_flow.append(box)
+
+    def _select_pkg_by_index(self, idx):
+        row = self.pkg_list.get_row_at_index(idx)
+        if row:
+            self.pkg_list.select_row(row)
+            self._on_pkg_selected(self.pkg_list, row)
 
     def _on_search_changed(self, entry):
         query = entry.get_text().lower()
