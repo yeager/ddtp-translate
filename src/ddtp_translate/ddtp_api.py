@@ -122,34 +122,6 @@ def parse_ddtp_response(text):
     return packages
 
 
-def fetch_untranslated(lang, force_refresh=False):
-    """Fetch untranslated descriptions for a language. Returns list of dicts."""
-    cache = _cache_path(lang)
-
-    if not force_refresh and _is_cache_valid(cache):
-        with open(cache, "r", encoding="utf-8") as f:
-            return json.load(f)
-
-    url = f"{DDTP_BASE}?lcode={lang}&getuntranslated=1"
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "ddtp-translate/0.1"})
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            text = resp.read().decode("utf-8", errors="replace")
-    except Exception as exc:
-        # If we have stale cache, use it
-        if cache.exists():
-            with open(cache, "r", encoding="utf-8") as f:
-                return json.load(f)
-        raise RuntimeError(f"Failed to fetch DDTP data: {exc}") from exc
-
-    packages = parse_ddtp_response(text)
-
-    with open(cache, "w", encoding="utf-8") as f:
-        json.dump(packages, f, ensure_ascii=False, indent=2)
-
-    return packages
-
-
 def _fetch_translation_file(dist, lang):
     """Download and decompress Translation-XX.bz2 from Debian mirror."""
     import bz2
