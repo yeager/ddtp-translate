@@ -448,7 +448,36 @@ class DDTPTranslateApp(Adw.Application):
         win = self.props.active_window
         if not win:
             win = MainWindow(self)
+            # Show preferences on first run if SMTP not configured
+            settings = load_settings()
+            if not settings.get("smtp_host"):
+                GLib.idle_add(self._prompt_smtp_setup, win)
         win.present()
+
+    def _prompt_smtp_setup(self, win):
+        dialog = Adw.MessageDialog(
+            transient_for=win,
+            heading=_("SMTP Setup Required"),
+            body=_(
+                "To submit translations to DDTP, you need to configure an SMTP server.\n\n"
+                "Common options:\n"
+                "• Gmail: smtp.gmail.com, port 465, TLS on\n"
+                "• Outlook: smtp.office365.com, port 587\n\n"
+                "You also need to set your name and email address."
+            ),
+        )
+        dialog.add_response("later", _("Later"))
+        dialog.add_response("setup", _("Open Preferences"))
+        dialog.set_response_appearance("setup", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response("setup")
+
+        def on_response(d, response):
+            d.close()
+            if response == "setup":
+                self._on_preferences()
+
+        dialog.connect("response", on_response)
+        dialog.present()
 
     def create_action(self, name, callback):
         action = Gio.SimpleAction(name=name)

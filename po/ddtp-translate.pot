@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ddtp-translate\n"
 "Report-Msgid-Bugs-To: daniel@danielnylander.se\n"
-"POT-Creation-Date: 2026-02-15 10:10+0100\n"
+"POT-Creation-Date: 2026-02-15 11:02+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,113 +17,140 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/ddtp_translate/main.py:43 src/ddtp_translate/main.py:151
+#: src/ddtp_translate/main.py:55 src/ddtp_translate/main.py:172
 msgid "Preferences"
 msgstr ""
 
-#: src/ddtp_translate/main.py:50
+#: src/ddtp_translate/main.py:62
 msgid "SMTP"
 msgstr ""
 
-#: src/ddtp_translate/main.py:51
+#: src/ddtp_translate/main.py:63
 msgid "Mail Server"
 msgstr ""
 
-#: src/ddtp_translate/main.py:53
+#: src/ddtp_translate/main.py:65
 msgid "SMTP Host"
 msgstr ""
 
-#: src/ddtp_translate/main.py:57
+#: src/ddtp_translate/main.py:69
 msgid "SMTP Port"
 msgstr ""
 
-#: src/ddtp_translate/main.py:61
+#: src/ddtp_translate/main.py:73
 msgid "Username"
 msgstr ""
 
-#: src/ddtp_translate/main.py:65
+#: src/ddtp_translate/main.py:77
 msgid "Password"
 msgstr ""
 
-#: src/ddtp_translate/main.py:69
+#: src/ddtp_translate/main.py:81
 msgid "Use TLS"
 msgstr ""
 
-#: src/ddtp_translate/main.py:76
+#: src/ddtp_translate/main.py:88
 msgid "Identity"
 msgstr ""
 
-#: src/ddtp_translate/main.py:77
+#: src/ddtp_translate/main.py:89
 msgid "Your Name"
 msgstr ""
 
-#: src/ddtp_translate/main.py:81
+#: src/ddtp_translate/main.py:93
 msgid "Your Email"
 msgstr ""
 
-#: src/ddtp_translate/main.py:110 src/ddtp_translate/main.py:386
+#: src/ddtp_translate/main.py:122 src/ddtp_translate/main.py:494
 msgid "DDTP Translate"
 msgstr ""
 
-#: src/ddtp_translate/main.py:140
+#: src/ddtp_translate/main.py:155
 msgid "Refresh"
 msgstr ""
 
-#: src/ddtp_translate/main.py:152
+#: src/ddtp_translate/main.py:161
+msgid "Toggle heatmap view"
+msgstr ""
+
+#: src/ddtp_translate/main.py:173
 msgid "About"
 msgstr ""
 
-#: src/ddtp_translate/main.py:167
+#: src/ddtp_translate/main.py:188
 msgid "Filter packages…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:194
+#: src/ddtp_translate/main.py:234
 msgid "Original (English)"
 msgstr ""
 
-#: src/ddtp_translate/main.py:212
+#: src/ddtp_translate/main.py:252
 msgid "Translation"
 msgstr ""
 
-#: src/ddtp_translate/main.py:237 src/ddtp_translate/main.py:297
+#: src/ddtp_translate/main.py:277 src/ddtp_translate/main.py:341
 msgid "Ready"
 msgstr ""
 
-#: src/ddtp_translate/main.py:241
+#: src/ddtp_translate/main.py:281
 msgid "Submit Translation"
 msgstr ""
 
-#: src/ddtp_translate/main.py:267
+#: src/ddtp_translate/main.py:307
 msgid "Loading…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:296
+#: src/ddtp_translate/main.py:340
 #, python-brace-format
 msgid "{n} untranslated"
 msgstr ""
 
-#: src/ddtp_translate/main.py:327
+#: src/ddtp_translate/main.py:406
 #, python-brace-format
 msgid "Editing: {pkg}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:336
+#: src/ddtp_translate/main.py:415
 msgid "Translation is empty"
 msgstr ""
 
-#: src/ddtp_translate/main.py:346
+#: src/ddtp_translate/main.py:425
 msgid "Sending…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:351
+#: src/ddtp_translate/main.py:430
 msgid "Sent successfully!"
 msgstr ""
 
-#: src/ddtp_translate/main.py:353
+#: src/ddtp_translate/main.py:432
 #, python-brace-format
 msgid "Error: {e}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:395
+#: src/ddtp_translate/main.py:460
+msgid "SMTP Setup Required"
+msgstr ""
+
+#: src/ddtp_translate/main.py:462
+msgid ""
+"To submit translations to DDTP, you need to configure an SMTP server.\n"
+"\n"
+"Common options:\n"
+"• Gmail: smtp.gmail.com, port 465, TLS on\n"
+"• Outlook: smtp.office365.com, port 587\n"
+"\n"
+"You also need to set your name and email address."
+msgstr ""
+
+#: src/ddtp_translate/main.py:469
+msgid "Later"
+msgstr ""
+
+#: src/ddtp_translate/main.py:470
+msgid "Open Preferences"
+msgstr ""
+
+#: src/ddtp_translate/main.py:505
 msgid "Translate Debian package descriptions via DDTP"
 msgstr ""

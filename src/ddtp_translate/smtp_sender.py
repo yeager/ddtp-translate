@@ -7,8 +7,8 @@ from email.mime.text import MIMEText
 from pathlib import Path
 
 DDTP_EMAIL = "pdesc@ddtp.debian.org"
-DEFAULT_SMTP_HOST = "localhost"
-DEFAULT_SMTP_PORT = 25
+DEFAULT_SMTP_HOST = ""
+DEFAULT_SMTP_PORT = 587
 
 
 def _config_dir():
@@ -30,7 +30,7 @@ def load_settings():
         "smtp_port": DEFAULT_SMTP_PORT,
         "smtp_user": "",
         "smtp_password": "",
-        "smtp_use_tls": False,
+        "smtp_use_tls": True,
         "from_email": "",
         "from_name": "",
         "default_language": "sv",
@@ -100,7 +100,12 @@ def send_translation(package_name, md5_hash, lang, translated_short, translated_
     port = int(settings.get("smtp_port", DEFAULT_SMTP_PORT))
     user = settings.get("smtp_user", "")
     password = settings.get("smtp_password", "")
-    use_tls = settings.get("smtp_use_tls", False)
+    use_tls = settings.get("smtp_use_tls", True)
+
+    if not host:
+        raise RuntimeError(
+            "SMTP server not configured. Go to Preferences to set up your mail server."
+        )
 
     if use_tls:
         server = smtplib.SMTP_SSL(host, port, timeout=30)
