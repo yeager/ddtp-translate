@@ -39,11 +39,15 @@ APP_ID = "se.danielnylander.ddtp-translate"
 DEFAULT_SEND_DELAY = 30
 
 
-def _setup_heatmap_css():
+def _setup_css():
     css = b"""
     .heatmap-green { background-color: #26a269; color: white; border-radius: 8px; }
     .heatmap-red { background-color: #c01c28; color: white; border-radius: 8px; }
     .heatmap-gray { background-color: #77767b; color: white; border-radius: 8px; }
+    .queue-ready { background-color: alpha(@accent_bg_color, 0.15); }
+    .queue-sent { background-color: alpha(@success_bg_color, 0.15); }
+    .queue-error { background-color: alpha(@error_bg_color, 0.15); }
+    .queue-count { font-weight: bold; font-size: 1.1em; }
     """
     provider = Gtk.CssProvider()
     provider.load_from_data(css)
@@ -111,6 +115,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
         id_group.add(self.email_row)
         smtp_page.add(id_group)
 
+        self.add(smtp_page)
+
         # Sending page
         send_page = Adw.PreferencesPage(title=_("Sending"), icon_name="preferences-system-time-symbolic")
         send_group = Adw.PreferencesGroup(
@@ -118,15 +124,13 @@ class PreferencesWindow(Adw.PreferencesWindow):
             description=_("Delay between email submissions to avoid flooding the DDTP server."),
         )
 
-        self.delay_row = Adw.SpinRow.new_with_range(0, 300, 5)
+        self.delay_row = Adw.SpinRow.new_with_range(5, 300, 5)
         self.delay_row.set_title(_("Delay between emails (seconds)"))
         self.delay_row.set_value(self.settings.get("send_delay", DEFAULT_SEND_DELAY))
         send_group.add(self.delay_row)
 
         send_page.add(send_group)
         self.add(send_page)
-
-        self.add(smtp_page)
 
         self.connect("close-request", self._on_close)
 
@@ -152,11 +156,28 @@ class PreferencesWindow(Adw.PreferencesWindow):
         return False
 
 
+# --- Queue item ---
+class QueueItem:
+    """A translation queued for submission."""
+    STATUS_READY = "ready"
+    STATUS_SENDING = "sending"
+    STATUS_SENT = "sent"
+    STATUS_ERROR = "error"
+
+    def __init__(self, package, md5, short, long_text=""):
+        self.package = package
+        self.md5 = md5
+        self.short = short
+        self.long_text = long_text
+        self.status = self.STATUS_READY
+        self.error_msg = ""
+
+
 class MainWindow(Adw.ApplicationWindow):
     """Main application window."""
 
     def __init__(self, app, **kwargs):
-        super().__init__(application=app, title=_("DDTP Translate"), default_width=1100, default_height=700, **kwargs)
+        super().__init__(application=app, title=_("DDTP Translate"), default_width=1200, default_height=750, **kwargs)
 
         self.packages = []
         self.current_pkg = None
@@ -164,8 +185,11 @@ class MainWindow(Adw.ApplicationWindow):
         self._heatmap_mode = False
         self._sort_ascending = True
         self._last_send_time = 0
+        self._queue = []  # list of QueueItem
+        self._batch_running = False
+        self._batch_cancel = False
 
-        _setup_heatmap_css()
+        _setup_css()
 
         # Main layout
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -183,7 +207,6 @@ class MainWindow(Adw.ApplicationWindow):
             self._lang_codes.append(code)
 
         self.lang_dropdown = Gtk.DropDown(model=lang_store)
-        # Set default language
         default_lang = self.settings.get("default_language", "sv")
         if default_lang in self._lang_codes:
             self.lang_dropdown.set_selected(self._lang_codes.index(default_lang))
@@ -212,36 +235,48 @@ class MainWindow(Adw.ApplicationWindow):
         self.stats_label.add_css_class("dim-label")
         header.pack_start(self.stats_label)
 
-        # Export PO button
-        export_btn = Gtk.Button(icon_name="document-save-symbolic", tooltip_text=_("Export as PO file"))
-        export_btn.connect("clicked", self._on_export_po)
-        header.pack_end(export_btn)
+        # Queue badge
+        self._queue_label = Gtk.Label(label="")
+        self._queue_label.add_css_class("queue-count")
+        self._queue_label.set_visible(False)
+        header.pack_end(self._queue_label)
+
+        # Send queue button
+        self._send_queue_btn = Gtk.Button(icon_name="mail-send-symbolic", tooltip_text=_("Send queue"))
+        self._send_queue_btn.add_css_class("suggested-action")
+        self._send_queue_btn.set_sensitive(False)
+        self._send_queue_btn.connect("clicked", self._on_send_queue)
+        header.pack_end(self._send_queue_btn)
 
         # Import PO button
         import_btn = Gtk.Button(icon_name="document-open-symbolic", tooltip_text=_("Import translated PO file"))
         import_btn.connect("clicked", self._on_import_po)
         header.pack_end(import_btn)
 
+        # Export PO button
+        export_btn = Gtk.Button(icon_name="document-save-symbolic", tooltip_text=_("Export as PO file"))
+        export_btn.connect("clicked", self._on_export_po)
+        header.pack_end(export_btn)
+
         # Hamburger menu
         menu = Gio.Menu()
         menu.append(_("Export as PO file…"), "app.export-po")
         menu.append(_("Import translated PO…"), "app.import-po")
+        menu.append(_("Clear queue"), "app.clear-queue")
         menu.append(_("Preferences"), "app.preferences")
         menu.append(_("About"), "app.about")
         menu_btn = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu)
         header.pack_end(menu_btn)
 
-        # Content: sidebar + editor
-        paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        paned.set_position(280)
-        paned.set_vexpand(True)
-        main_box.append(paned)
+        # Main content: 3-pane — sidebar | editor | queue
+        content_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        content_box.set_vexpand(True)
+        main_box.append(content_box)
 
-        # Sidebar
+        # === LEFT: Sidebar (package list) ===
         sidebar_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         sidebar_box.set_size_request(250, -1)
 
-        # Search
         self.search_entry = Gtk.SearchEntry(placeholder_text=_("Filter packages…"))
         self.search_entry.set_margin_start(6)
         self.search_entry.set_margin_end(6)
@@ -250,21 +285,18 @@ class MainWindow(Adw.ApplicationWindow):
         self.search_entry.connect("search-changed", self._on_search_changed)
         sidebar_box.append(self.search_entry)
 
-        # Progress bar (hidden by default)
         self._progress_bar = Gtk.ProgressBar()
         self._progress_bar.set_margin_start(6)
         self._progress_bar.set_margin_end(6)
         self._progress_bar.set_visible(False)
         sidebar_box.append(self._progress_bar)
 
-        # Package list
         scroll = Gtk.ScrolledWindow(vexpand=True)
         self.pkg_list = Gtk.ListBox()
         self.pkg_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.pkg_list.connect("row-selected", self._on_pkg_selected)
         scroll.set_child(self.pkg_list)
 
-        # Heatmap view for sidebar
         hm_scroll = Gtk.ScrolledWindow(vexpand=True)
         self._heatmap_flow = Gtk.FlowBox()
         self._heatmap_flow.set_selection_mode(Gtk.SelectionMode.NONE)
@@ -284,12 +316,13 @@ class MainWindow(Adw.ApplicationWindow):
         self._sidebar_stack.add_named(hm_scroll, "heatmap")
         sidebar_box.append(self._sidebar_stack)
 
-        paned.set_start_child(sidebar_box)
+        content_box.append(sidebar_box)
+        content_box.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
 
-        # Editor area
+        # === CENTER: Editor ===
         editor_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        editor_box.set_hexpand(True)
 
-        # Side-by-side pane
         editor_paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
         editor_paned.set_vexpand(True)
 
@@ -342,23 +375,88 @@ class MainWindow(Adw.ApplicationWindow):
         self.status_label.add_css_class("dim-label")
         bottom.append(self.status_label)
 
-        self.submit_btn = Gtk.Button(label=_("Submit Translation"))
+        # Add to queue button
+        self._add_queue_btn = Gtk.Button(label=_("Add to Queue"))
+        self._add_queue_btn.set_tooltip_text(_("Add this translation to the send queue"))
+        self._add_queue_btn.set_sensitive(False)
+        self._add_queue_btn.connect("clicked", self._on_add_to_queue)
+        bottom.append(self._add_queue_btn)
+
+        # Direct submit button
+        self.submit_btn = Gtk.Button(label=_("Submit Now"))
         self.submit_btn.add_css_class("suggested-action")
         self.submit_btn.set_sensitive(False)
         self.submit_btn.connect("clicked", self._on_submit)
         bottom.append(self.submit_btn)
 
         editor_box.append(bottom)
-        paned.set_end_child(editor_box)
+        content_box.append(editor_box)
+        content_box.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
+
+        # === RIGHT: Queue panel ===
+        queue_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        queue_box.set_size_request(280, -1)
+
+        queue_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        queue_header.set_margin_start(8)
+        queue_header.set_margin_end(8)
+        queue_header.set_margin_top(8)
+        queue_header.set_margin_bottom(4)
+
+        queue_title = Gtk.Label(label=_("Send Queue"), xalign=0, hexpand=True)
+        queue_title.add_css_class("heading")
+        queue_header.append(queue_title)
+
+        self._queue_count_label = Gtk.Label(label="0")
+        self._queue_count_label.add_css_class("dim-label")
+        queue_header.append(self._queue_count_label)
+
+        # Sort queue button
+        queue_sort_btn = Gtk.Button(icon_name="view-sort-ascending-symbolic", tooltip_text=_("Sort queue"))
+        queue_sort_btn.connect("clicked", self._on_sort_queue)
+        queue_header.append(queue_sort_btn)
+
+        queue_box.append(queue_header)
+
+        # Queue list
+        queue_scroll = Gtk.ScrolledWindow(vexpand=True)
+        self._queue_list = Gtk.ListBox()
+        self._queue_list.set_selection_mode(Gtk.SelectionMode.NONE)
+        queue_scroll.set_child(self._queue_list)
+        queue_box.append(queue_scroll)
+
+        # Queue status bar
+        self._queue_status = Gtk.Label(label="", xalign=0)
+        self._queue_status.add_css_class("dim-label")
+        self._queue_status.set_margin_start(8)
+        self._queue_status.set_margin_end(8)
+        self._queue_status.set_margin_top(4)
+        self._queue_status.set_margin_bottom(8)
+        queue_box.append(self._queue_status)
+
+        content_box.append(queue_box)
 
         # Load initial data
         self._refresh_packages()
+
+    # --- Helpers ---
 
     def _current_lang(self):
         idx = self.lang_dropdown.get_selected()
         if 0 <= idx < len(self._lang_codes):
             return self._lang_codes[idx]
         return "sv"
+
+    def _format_duration(self, seconds):
+        if seconds < 60:
+            return _("{s} seconds").format(s=int(seconds))
+        minutes = seconds / 60
+        if minutes < 60:
+            return _("{m} minutes").format(m=int(minutes))
+        hours = minutes / 60
+        return _("{h}h {m}m").format(h=int(hours), m=int(minutes % 60))
+
+    # --- Package list ---
 
     def _on_lang_changed(self, *_args):
         self._refresh_packages()
@@ -383,7 +481,6 @@ class MainWindow(Adw.ApplicationWindow):
         self._progress_bar.set_show_text(True)
         self._clear_list()
 
-        # Pulse the progress bar while loading
         self._loading = True
 
         def pulse():
@@ -407,12 +504,8 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_packages_loaded(self, pkgs):
         self._progress_bar.set_fraction(1.0)
-        self._progress_bar.set_text(
-            _("{n} packages loaded").format(n=len(pkgs))
-        )
-        # Hide progress bar after a short delay
+        self._progress_bar.set_text(_("{n} packages loaded").format(n=len(pkgs)))
         GLib.timeout_add(1500, self._hide_progress)
-        # Sort
         pkgs.sort(key=lambda p: p.get("package", "").lower(), reverse=not self._sort_ascending)
         self._populate_list(pkgs)
 
@@ -460,7 +553,7 @@ class MainWindow(Adw.ApplicationWindow):
         for i, pkg in enumerate(pkgs):
             box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
             box.set_size_request(100, 44)
-            box.add_css_class("heatmap-red")  # all untranslated
+            box.add_css_class("heatmap-red")
             box.set_margin_start(2)
             box.set_margin_end(2)
             box.set_margin_top(2)
@@ -502,6 +595,7 @@ class MainWindow(Adw.ApplicationWindow):
         if row is None:
             self.current_pkg = None
             self.submit_btn.set_sensitive(False)
+            self._add_queue_btn.set_sensitive(False)
             return
 
         idx = row.get_index()
@@ -514,7 +608,10 @@ class MainWindow(Adw.ApplicationWindow):
             self.orig_view.get_buffer().set_text(desc)
             self.trans_view.get_buffer().set_text("")
             self.submit_btn.set_sensitive(True)
+            self._add_queue_btn.set_sensitive(True)
             self.status_label.set_text(_("Editing: {pkg}").format(pkg=pkg["package"]))
+
+    # --- Single submit ---
 
     def _on_submit(self, *_args):
         if not self.current_pkg:
@@ -526,315 +623,11 @@ class MainWindow(Adw.ApplicationWindow):
             self.status_label.set_text(_("Translation is empty"))
             return
 
-        # Check SMTP is configured
         settings = load_settings()
         if not settings.get("smtp_host"):
             self.status_label.set_text(_("SMTP not configured — open Preferences first"))
             return
 
-        # Rate limiting: check delay
-        send_delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
-        now = time.time()
-        elapsed = now - self._last_send_time
-        remaining = send_delay - elapsed
-
-        if self._last_send_time > 0 and remaining > 0:
-            self.status_label.set_text(
-                _("Please wait {s} seconds before sending again").format(s=int(remaining + 1))
-            )
-            # Start a countdown timer
-            self.submit_btn.set_sensitive(False)
-            self._start_countdown(remaining, text)
-            return
-
-        self._do_send(text)
-
-    def _start_countdown(self, remaining, text):
-        """Count down and auto-send when ready."""
-        self._countdown_remaining = remaining
-        self._pending_text = text
-
-        def tick():
-            self._countdown_remaining -= 1
-            if self._countdown_remaining <= 0:
-                self.submit_btn.set_sensitive(True)
-                self.status_label.set_text(_("Ready — sending…"))
-                self._do_send(self._pending_text)
-                return False
-            self.status_label.set_text(
-                _("Rate limit: sending in {s} seconds…").format(s=int(self._countdown_remaining))
-            )
-            return True
-
-        GLib.timeout_add(1000, tick)
-
-    # --- PO Export/Import ---
-
-    def _on_export_po(self, *_args):
-        """Export all loaded untranslated packages as a PO file for batch translation."""
-        if not self.packages:
-            self.status_label.set_text(_("No packages loaded to export"))
-            return
-
-        lang = self._current_lang()
-
-        dialog = Gtk.FileDialog()
-        dialog.set_initial_name(f"ddtp-{lang}.po")
-        fil = Gtk.FileFilter()
-        fil.set_name(_("PO files"))
-        fil.add_pattern("*.po")
-        filters = Gio.ListStore.new(Gtk.FileFilter)
-        filters.append(fil)
-        dialog.set_filters(filters)
-
-        dialog.save(self, None, self._on_export_po_response)
-
-    def _on_export_po_response(self, dialog, result):
-        try:
-            gfile = dialog.save_finish(result)
-        except GLib.Error:
-            return  # cancelled
-
-        path = gfile.get_path()
-        lang = self._current_lang()
-        lines = []
-        lines.append('# DDTP translations export')
-        lines.append(f'# Language: {lang}')
-        lines.append(f'# Packages: {len(self.packages)}')
-        lines.append('#')
-        lines.append('msgid ""')
-        lines.append('msgstr ""')
-        lines.append(f'"Language: {lang}\\n"')
-        lines.append('"Content-Type: text/plain; charset=UTF-8\\n"')
-        lines.append('"Content-Transfer-Encoding: 8bit\\n"')
-        lines.append('')
-
-        for pkg in self.packages:
-            lines.append(f'#. Package: {pkg["package"]}')
-            lines.append(f'#. MD5: {pkg["md5"]}')
-            # msgid = short description + long description
-            desc = pkg["short"]
-            if pkg["long"]:
-                desc += "\\n\\n" + pkg["long"].replace("\n", "\\n")
-            lines.append(f'msgid "{self._po_escape(pkg["short"])}"')
-            lines.append(f'msgstr ""')
-            lines.append('')
-            if pkg["long"]:
-                lines.append(f'#. Long description for {pkg["package"]}')
-                # Use msgctxt to distinguish short vs long
-                lines.append(f'msgctxt "long:{pkg["package"]}"')
-                escaped = self._po_escape_multiline(pkg["long"])
-                lines.append(f'msgid {escaped}')
-                lines.append(f'msgstr ""')
-                lines.append('')
-
-        with open(path, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(lines) + '\n')
-
-        self.status_label.set_text(
-            _("Exported {n} packages to {path}").format(n=len(self.packages), path=os.path.basename(path))
-        )
-
-    def _po_escape(self, s):
-        return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
-
-    def _po_escape_multiline(self, s):
-        """Escape a multiline string for PO format."""
-        lines = s.split('\n')
-        if len(lines) == 1:
-            return f'"{self._po_escape(s)}"'
-        parts = ['""']
-        for i, line in enumerate(lines):
-            escaped = self._po_escape(line)
-            if i < len(lines) - 1:
-                parts.append(f'"{escaped}\\n"')
-            else:
-                parts.append(f'"{escaped}"')
-        return '\n'.join(parts)
-
-    def _on_import_po(self, *_args):
-        """Import a translated PO file and batch-submit translations."""
-        dialog = Gtk.FileDialog()
-        fil = Gtk.FileFilter()
-        fil.set_name(_("PO files"))
-        fil.add_pattern("*.po")
-        filters = Gio.ListStore.new(Gtk.FileFilter)
-        filters.append(fil)
-        dialog.set_filters(filters)
-
-        dialog.open(self, None, self._on_import_po_response)
-
-    def _on_import_po_response(self, dialog, result):
-        try:
-            gfile = dialog.open_finish(result)
-        except GLib.Error:
-            return  # cancelled
-
-        path = gfile.get_path()
-        translations = self._parse_imported_po(path)
-
-        if not translations:
-            self.status_label.set_text(_("No translations found in file"))
-            return
-
-        # Show confirmation before batch sending
-        settings = load_settings()
-        delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
-
-        confirm = Adw.MessageDialog(
-            transient_for=self,
-            heading=_("Submit {n} translations?").format(n=len(translations)),
-            body=_(
-                "Found {n} translated descriptions.\n\n"
-                "They will be sent to DDTP one by one with a {delay}-second "
-                "delay between each email to avoid flooding the server.\n\n"
-                "Estimated time: {time}"
-            ).format(
-                n=len(translations),
-                delay=delay,
-                time=self._format_duration(len(translations) * delay),
-            ),
-        )
-        confirm.add_response("cancel", _("Cancel"))
-        confirm.add_response("send", _("Send All"))
-        confirm.set_response_appearance("send", Adw.ResponseAppearance.SUGGESTED)
-
-        def on_confirm(d, response):
-            d.close()
-            if response == "send":
-                self._batch_send(translations)
-
-        confirm.connect("response", on_confirm)
-        confirm.present()
-
-    def _format_duration(self, seconds):
-        if seconds < 60:
-            return _("{s} seconds").format(s=int(seconds))
-        minutes = seconds / 60
-        if minutes < 60:
-            return _("{m} minutes").format(m=int(minutes))
-        hours = minutes / 60
-        return _("{h}h {m}m").format(h=int(hours), m=int(minutes % 60))
-
-    def _parse_imported_po(self, path):
-        """Parse a PO file exported by this app, returning list of (package, md5, short, long)."""
-        translations = []
-        current_pkg = None
-        current_md5 = None
-        current_context = None
-        in_msgstr = False
-        msgstr_lines = []
-        msgid_text = ""
-
-        with open(path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-
-        def flush():
-            nonlocal current_pkg, current_md5, current_context, msgstr_lines, msgid_text
-            text = ''.join(msgstr_lines).replace('\\n', '\n').strip()
-            if text and current_pkg and current_md5:
-                # Find or create entry
-                entry = None
-                for t in translations:
-                    if t[0] == current_pkg and t[1] == current_md5:
-                        entry = t
-                        break
-                if current_context and current_context.startswith("long:"):
-                    if entry:
-                        # Update long description
-                        translations[translations.index(entry)] = (entry[0], entry[1], entry[2], text)
-                    else:
-                        translations.append((current_pkg, current_md5, "", text))
-                else:
-                    if entry:
-                        translations[translations.index(entry)] = (entry[0], entry[1], text, entry[3])
-                    else:
-                        translations.append((current_pkg, current_md5, text, ""))
-
-        for line in lines:
-            line = line.rstrip('\n')
-            if line.startswith('#. Package: '):
-                current_pkg = line[12:].strip()
-            elif line.startswith('#. MD5: '):
-                current_md5 = line[8:].strip()
-            elif line.startswith('msgctxt "long:'):
-                current_context = line.split('"')[1]
-            elif line.startswith('msgctxt '):
-                current_context = None
-            elif line.startswith('msgid '):
-                if in_msgstr:
-                    flush()
-                    msgstr_lines = []
-                in_msgstr = False
-                msgid_text = line[6:].strip().strip('"')
-            elif line.startswith('msgstr '):
-                in_msgstr = True
-                msgstr_lines = [self._po_unescape(line[7:].strip().strip('"'))]
-            elif in_msgstr and line.startswith('"'):
-                msgstr_lines.append(self._po_unescape(line.strip().strip('"')))
-            elif not line.strip():
-                if in_msgstr:
-                    flush()
-                    msgstr_lines = []
-                    in_msgstr = False
-
-        if in_msgstr:
-            flush()
-
-        # Filter out entries with empty short description
-        return [(p, m, s, l) for p, m, s, l in translations if s]
-
-    def _po_unescape(self, s):
-        return s.replace('\\n', '\n').replace('\\"', '"').replace('\\\\', '\\')
-
-    def _batch_send(self, translations):
-        """Send translations one by one with delay."""
-        lang = self._current_lang()
-        settings = load_settings()
-        delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
-        total = len(translations)
-
-        self.submit_btn.set_sensitive(False)
-        self._progress_bar.set_visible(True)
-        self._progress_bar.set_fraction(0.0)
-
-        def send_batch():
-            for i, (pkg, md5, short, long_text) in enumerate(translations):
-                GLib.idle_add(
-                    self.status_label.set_text,
-                    _("Sending {i}/{total}: {pkg}…").format(i=i + 1, total=total, pkg=pkg),
-                )
-                GLib.idle_add(self._progress_bar.set_fraction, (i + 1) / total)
-
-                try:
-                    send_translation(pkg, md5, lang, short, long_text, settings)
-                except Exception as exc:
-                    GLib.idle_add(
-                        self.status_label.set_text,
-                        _("Error on {pkg}: {e}").format(pkg=pkg, e=str(exc)),
-                    )
-                    break
-
-                # Rate limit delay (skip after last one)
-                if i < total - 1 and delay > 0:
-                    for sec in range(int(delay), 0, -1):
-                        GLib.idle_add(
-                            self.status_label.set_text,
-                            _("Sent {i}/{total} — next in {s}s").format(i=i + 1, total=total, s=sec),
-                        )
-                        time.sleep(1)
-            else:
-                GLib.idle_add(
-                    self.status_label.set_text,
-                    _("Done! Sent {total} translations").format(total=total),
-                )
-
-            GLib.idle_add(self.submit_btn.set_sensitive, True)
-            GLib.idle_add(self._progress_bar.set_visible, False)
-
-        threading.Thread(target=send_batch, daemon=True).start()
-
-    def _do_send(self, text):
         lines = text.split("\n", 1)
         short = lines[0]
         long_text = lines[1].strip() if len(lines) > 1 else ""
@@ -855,6 +648,506 @@ class MainWindow(Adw.ApplicationWindow):
 
         threading.Thread(target=do_send, daemon=True).start()
 
+    # --- Queue management ---
+
+    def _on_add_to_queue(self, *_args):
+        """Add current translation to the send queue."""
+        if not self.current_pkg:
+            return
+
+        buf = self.trans_view.get_buffer()
+        text = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False).strip()
+        if not text:
+            self.status_label.set_text(_("Translation is empty"))
+            return
+
+        lines = text.split("\n", 1)
+        short = lines[0]
+        long_text = lines[1].strip() if len(lines) > 1 else ""
+
+        pkg = self.current_pkg
+
+        # Check if already in queue
+        for item in self._queue:
+            if item.package == pkg["package"] and item.md5 == pkg["md5"]:
+                item.short = short
+                item.long_text = long_text
+                item.status = QueueItem.STATUS_READY
+                item.error_msg = ""
+                self._rebuild_queue_ui()
+                self.status_label.set_text(_("Updated {pkg} in queue").format(pkg=pkg["package"]))
+                return
+
+        self._queue.append(QueueItem(pkg["package"], pkg["md5"], short, long_text))
+        self._rebuild_queue_ui()
+        self.status_label.set_text(_("Added {pkg} to queue ({n} total)").format(
+            pkg=pkg["package"], n=len(self._queue)))
+
+    def _on_sort_queue(self, *_args):
+        self._queue.sort(key=lambda q: q.package.lower())
+        self._rebuild_queue_ui()
+
+    def _clear_queue(self):
+        self._queue = [q for q in self._queue if q.status == QueueItem.STATUS_SENDING]
+        self._rebuild_queue_ui()
+
+    def _rebuild_queue_ui(self):
+        """Rebuild the queue list UI."""
+        # Clear
+        if hasattr(self._queue_list, "remove_all"):
+            self._queue_list.remove_all()
+        else:
+            while True:
+                row = self._queue_list.get_row_at_index(0)
+                if row is None:
+                    break
+                self._queue_list.remove(row)
+
+        ready_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_READY)
+        sent_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_SENT)
+        error_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_ERROR)
+
+        for i, item in enumerate(self._queue):
+            row_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            row_box.set_margin_start(8)
+            row_box.set_margin_end(8)
+            row_box.set_margin_top(4)
+            row_box.set_margin_bottom(4)
+
+            # Status icon
+            if item.status == QueueItem.STATUS_READY:
+                icon = Gtk.Image.new_from_icon_name("mail-unread-symbolic")
+                row_box.add_css_class("queue-ready")
+            elif item.status == QueueItem.STATUS_SENDING:
+                icon = Gtk.Image.new_from_icon_name("emblem-synchronizing-symbolic")
+            elif item.status == QueueItem.STATUS_SENT:
+                icon = Gtk.Image.new_from_icon_name("emblem-ok-symbolic")
+                row_box.add_css_class("queue-sent")
+            else:
+                icon = Gtk.Image.new_from_icon_name("dialog-error-symbolic")
+                row_box.add_css_class("queue-error")
+            row_box.append(icon)
+
+            # Package name
+            name_label = Gtk.Label(label=item.package, xalign=0, hexpand=True)
+            name_label.set_ellipsize(Pango.EllipsizeMode.END)
+            if item.error_msg:
+                name_label.set_tooltip_text(item.error_msg)
+            row_box.append(name_label)
+
+            # Remove button (only if not currently sending)
+            if item.status != QueueItem.STATUS_SENDING:
+                remove_btn = Gtk.Button(icon_name="user-trash-symbolic")
+                remove_btn.add_css_class("flat")
+                remove_btn.set_tooltip_text(_("Remove from queue"))
+                remove_btn.connect("clicked", lambda b, idx=i: self._remove_queue_item(idx))
+                row_box.append(remove_btn)
+
+            self._queue_list.append(row_box)
+
+        self._queue_count_label.set_text(
+            _("{ready} ready, {sent} sent, {errors} errors").format(
+                ready=ready_count, sent=sent_count, errors=error_count)
+        )
+
+        # Update badge
+        if ready_count > 0:
+            self._queue_label.set_text(f"📬 {ready_count}")
+            self._queue_label.set_visible(True)
+            self._send_queue_btn.set_sensitive(not self._batch_running)
+        else:
+            self._queue_label.set_visible(False)
+            self._send_queue_btn.set_sensitive(False)
+
+    def _remove_queue_item(self, idx):
+        if 0 <= idx < len(self._queue):
+            removed = self._queue.pop(idx)
+            self._rebuild_queue_ui()
+            self.status_label.set_text(_("Removed {pkg} from queue").format(pkg=removed.package))
+
+    # --- Batch send with confirmation ---
+
+    def _on_send_queue(self, *_args):
+        ready = [q for q in self._queue if q.status == QueueItem.STATUS_READY]
+        if not ready:
+            return
+
+        settings = load_settings()
+        if not settings.get("smtp_host"):
+            self.status_label.set_text(_("SMTP not configured — open Preferences first"))
+            return
+
+        delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
+        total = len(ready)
+        est_time = self._format_duration(total * delay)
+
+        dialog = Adw.MessageDialog(
+            transient_for=self,
+            heading=_("Send {n} translations to DDTP?").format(n=total),
+            body=_(
+                "You are about to send {n} translation(s) to the Debian Description "
+                "Translation Project (DDTP) via email.\n\n"
+                "⚠️ Important information:\n\n"
+                "• Each translation is sent as a separate email to pdesc@ddtp.debian.org\n"
+                "• A delay of {delay} seconds is enforced between each email "
+                "to prevent overloading the DDTP server\n"
+                "• The DDTP server is run by volunteers — please be considerate\n"
+                "• Estimated time: {time}\n"
+                "• You can cancel the process at any time\n"
+                "• Successfully sent translations cannot be recalled\n"
+                "• Any SMTP errors will be shown per package\n\n"
+                "The delay can be adjusted in Preferences → Sending.\n"
+                "Make sure your SMTP settings and email address are correct."
+            ).format(n=total, delay=delay, time=est_time),
+        )
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("send", _("I understand — Send All"))
+        dialog.set_response_appearance("send", Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_default_response("cancel")
+
+        def on_response(d, response):
+            d.close()
+            if response == "send":
+                self._start_batch_send()
+
+        dialog.connect("response", on_response)
+        dialog.present()
+
+    def _start_batch_send(self):
+        """Start sending all ready items in the queue."""
+        self._batch_running = True
+        self._batch_cancel = False
+        self._send_queue_btn.set_sensitive(False)
+
+        # Show a progress dialog
+        self._batch_dialog = Adw.Window(
+            transient_for=self,
+            title=_("Sending Translations"),
+            default_width=500,
+            default_height=400,
+            modal=True,
+        )
+
+        dialog_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        dialog_box.set_margin_start(24)
+        dialog_box.set_margin_end(24)
+        dialog_box.set_margin_top(24)
+        dialog_box.set_margin_bottom(24)
+
+        # Header
+        self._batch_heading = Gtk.Label(label=_("Sending translations…"))
+        self._batch_heading.add_css_class("title-2")
+        dialog_box.append(self._batch_heading)
+
+        # Overall progress
+        self._batch_progress = Gtk.ProgressBar()
+        self._batch_progress.set_show_text(True)
+        dialog_box.append(self._batch_progress)
+
+        # Current package
+        self._batch_current = Gtk.Label(label="", xalign=0)
+        self._batch_current.add_css_class("dim-label")
+        dialog_box.append(self._batch_current)
+
+        # Countdown
+        self._batch_countdown = Gtk.Label(label="", xalign=0)
+        dialog_box.append(self._batch_countdown)
+
+        # Log
+        log_scroll = Gtk.ScrolledWindow(vexpand=True)
+        self._batch_log_buf = Gtk.TextBuffer()
+        log_view = Gtk.TextView(buffer=self._batch_log_buf, editable=False, wrap_mode=Gtk.WrapMode.WORD)
+        log_view.add_css_class("monospace")
+        log_scroll.set_child(log_view)
+        dialog_box.append(log_scroll)
+
+        # Buttons
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_box.set_halign(Gtk.Align.END)
+
+        self._batch_cancel_btn = Gtk.Button(label=_("Cancel"))
+        self._batch_cancel_btn.add_css_class("destructive-action")
+        self._batch_cancel_btn.connect("clicked", self._on_batch_cancel)
+        btn_box.append(self._batch_cancel_btn)
+
+        self._batch_close_btn = Gtk.Button(label=_("Close"))
+        self._batch_close_btn.set_sensitive(False)
+        self._batch_close_btn.connect("clicked", lambda b: self._batch_dialog.close())
+        btn_box.append(self._batch_close_btn)
+
+        dialog_box.append(btn_box)
+
+        self._batch_dialog.set_content(dialog_box)
+        self._batch_dialog.present()
+
+        # Start sending in background
+        threading.Thread(target=self._batch_send_worker, daemon=True).start()
+
+    def _batch_log(self, text):
+        """Append text to the batch log."""
+        def do_log():
+            end = self._batch_log_buf.get_end_iter()
+            self._batch_log_buf.insert(end, text + "\n")
+        GLib.idle_add(do_log)
+
+    def _on_batch_cancel(self, *_args):
+        self._batch_cancel = True
+        self._batch_cancel_btn.set_sensitive(False)
+        self._batch_log(_("⏸ Cancelling after current email…"))
+
+    def _batch_send_worker(self):
+        """Background worker that sends queued translations."""
+        settings = load_settings()
+        delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
+        lang = self._current_lang()
+
+        ready = [q for q in self._queue if q.status == QueueItem.STATUS_READY]
+        total = len(ready)
+        sent = 0
+        errors = 0
+
+        for i, item in enumerate(ready):
+            if self._batch_cancel:
+                self._batch_log(_("❌ Cancelled by user. {sent}/{total} sent.").format(
+                    sent=sent, total=total))
+                break
+
+            item.status = QueueItem.STATUS_SENDING
+            GLib.idle_add(self._rebuild_queue_ui)
+            GLib.idle_add(self._batch_current.set_text,
+                          _("Sending: {pkg} ({i}/{total})").format(pkg=item.package, i=i + 1, total=total))
+            GLib.idle_add(self._batch_progress.set_fraction, (i + 0.5) / total)
+            GLib.idle_add(self._batch_progress.set_text, f"{i + 1}/{total}")
+
+            try:
+                send_translation(item.package, item.md5, lang, item.short, item.long_text, settings)
+                item.status = QueueItem.STATUS_SENT
+                sent += 1
+                self._batch_log(f"✅ {item.package}")
+            except Exception as exc:
+                item.status = QueueItem.STATUS_ERROR
+                item.error_msg = str(exc)
+                errors += 1
+                self._batch_log(f"❌ {item.package}: {exc}")
+
+            GLib.idle_add(self._rebuild_queue_ui)
+            GLib.idle_add(self._batch_progress.set_fraction, (i + 1) / total)
+
+            # Rate limit delay (not after last or if cancelled)
+            if i < total - 1 and not self._batch_cancel and delay > 0:
+                for sec in range(int(delay), 0, -1):
+                    if self._batch_cancel:
+                        break
+                    GLib.idle_add(self._batch_countdown.set_text,
+                                  _("Next email in {s} seconds…").format(s=sec))
+                    time.sleep(1)
+                GLib.idle_add(self._batch_countdown.set_text, "")
+
+        # Done
+        self._batch_running = False
+        summary = _("Done! {sent} sent, {errors} errors out of {total}").format(
+            sent=sent, errors=errors, total=total)
+        self._batch_log(f"\n{summary}")
+        GLib.idle_add(self._batch_heading.set_text, _("Sending complete"))
+        GLib.idle_add(self._batch_current.set_text, summary)
+        GLib.idle_add(self._batch_countdown.set_text, "")
+        GLib.idle_add(self._batch_cancel_btn.set_sensitive, False)
+        GLib.idle_add(self._batch_close_btn.set_sensitive, True)
+        GLib.idle_add(self._rebuild_queue_ui)
+        GLib.idle_add(self.status_label.set_text, summary)
+
+    # --- PO Export/Import ---
+
+    def _on_export_po(self, *_args):
+        if not self.packages:
+            self.status_label.set_text(_("No packages loaded to export"))
+            return
+
+        lang = self._current_lang()
+        dialog = Gtk.FileDialog()
+        dialog.set_initial_name(f"ddtp-{lang}.po")
+        fil = Gtk.FileFilter()
+        fil.set_name(_("PO files"))
+        fil.add_pattern("*.po")
+        filters = Gio.ListStore.new(Gtk.FileFilter)
+        filters.append(fil)
+        dialog.set_filters(filters)
+        dialog.save(self, None, self._on_export_po_response)
+
+    def _on_export_po_response(self, dialog, result):
+        try:
+            gfile = dialog.save_finish(result)
+        except GLib.Error:
+            return
+
+        path = gfile.get_path()
+        lang = self._current_lang()
+        lines = [
+            '# DDTP translations export',
+            f'# Language: {lang}',
+            f'# Packages: {len(self.packages)}',
+            '#',
+            'msgid ""', 'msgstr ""',
+            f'"Language: {lang}\\n"',
+            '"Content-Type: text/plain; charset=UTF-8\\n"',
+            '"Content-Transfer-Encoding: 8bit\\n"',
+            '',
+        ]
+
+        for pkg in self.packages:
+            lines.append(f'#. Package: {pkg["package"]}')
+            lines.append(f'#. MD5: {pkg["md5"]}')
+            lines.append(f'msgid "{self._po_escape(pkg["short"])}"')
+            lines.append('msgstr ""')
+            lines.append('')
+            if pkg["long"]:
+                lines.append(f'#. Long description for {pkg["package"]}')
+                lines.append(f'msgctxt "long:{pkg["package"]}"')
+                escaped = self._po_escape_multiline(pkg["long"])
+                lines.append(f'msgid {escaped}')
+                lines.append('msgstr ""')
+                lines.append('')
+
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines) + '\n')
+
+        self.status_label.set_text(
+            _("Exported {n} packages to {path}").format(n=len(self.packages), path=os.path.basename(path)))
+
+    def _po_escape(self, s):
+        return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+
+    def _po_escape_multiline(self, s):
+        lines = s.split('\n')
+        if len(lines) == 1:
+            return f'"{self._po_escape(s)}"'
+        parts = ['""']
+        for i, line in enumerate(lines):
+            escaped = self._po_escape(line)
+            if i < len(lines) - 1:
+                parts.append(f'"{escaped}\\n"')
+            else:
+                parts.append(f'"{escaped}"')
+        return '\n'.join(parts)
+
+    def _on_import_po(self, *_args):
+        dialog = Gtk.FileDialog()
+        fil = Gtk.FileFilter()
+        fil.set_name(_("PO files"))
+        fil.add_pattern("*.po")
+        filters = Gio.ListStore.new(Gtk.FileFilter)
+        filters.append(fil)
+        dialog.set_filters(filters)
+        dialog.open(self, None, self._on_import_po_response)
+
+    def _on_import_po_response(self, dialog, result):
+        try:
+            gfile = dialog.open_finish(result)
+        except GLib.Error:
+            return
+
+        path = gfile.get_path()
+        translations = self._parse_imported_po(path)
+
+        if not translations:
+            self.status_label.set_text(_("No translated entries found in file (only entries with translations are imported)"))
+            return
+
+        # Add all to queue
+        added = 0
+        updated = 0
+        for pkg, md5, short, long_text in translations:
+            existing = None
+            for q in self._queue:
+                if q.package == pkg and q.md5 == md5:
+                    existing = q
+                    break
+            if existing:
+                existing.short = short
+                existing.long_text = long_text
+                existing.status = QueueItem.STATUS_READY
+                existing.error_msg = ""
+                updated += 1
+            else:
+                self._queue.append(QueueItem(pkg, md5, short, long_text))
+                added += 1
+
+        self._rebuild_queue_ui()
+        self.status_label.set_text(
+            _("Imported {added} new, {updated} updated — {total} in queue").format(
+                added=added, updated=updated, total=len(self._queue)))
+
+    def _parse_imported_po(self, path):
+        """Parse PO file, return only entries that have actual translations."""
+        translations = []
+        current_pkg = None
+        current_md5 = None
+        current_context = None
+        in_msgstr = False
+        msgstr_lines = []
+
+        with open(path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+
+        def flush():
+            nonlocal current_pkg, current_md5, current_context, msgstr_lines
+            text = self._po_unescape_joined(msgstr_lines).strip()
+            if not text or not current_pkg or not current_md5:
+                return
+
+            entry = None
+            for t in translations:
+                if t[0] == current_pkg and t[1] == current_md5:
+                    entry = t
+                    break
+            if current_context and current_context.startswith("long:"):
+                if entry:
+                    translations[translations.index(entry)] = (entry[0], entry[1], entry[2], text)
+                else:
+                    translations.append((current_pkg, current_md5, "", text))
+            else:
+                if entry:
+                    translations[translations.index(entry)] = (entry[0], entry[1], text, entry[3])
+                else:
+                    translations.append((current_pkg, current_md5, text, ""))
+
+        for line in lines:
+            line = line.rstrip('\n')
+            if line.startswith('#. Package: '):
+                current_pkg = line[12:].strip()
+            elif line.startswith('#. MD5: '):
+                current_md5 = line[8:].strip()
+            elif line.startswith('msgctxt "long:'):
+                current_context = line.split('"')[1]
+            elif line.startswith('msgctxt '):
+                current_context = line.split('"')[1] if '"' in line else None
+            elif line.startswith('msgid '):
+                if in_msgstr:
+                    flush()
+                    msgstr_lines = []
+                in_msgstr = False
+            elif line.startswith('msgstr '):
+                in_msgstr = True
+                msgstr_lines = [line[7:].strip().strip('"')]
+            elif in_msgstr and line.startswith('"'):
+                msgstr_lines.append(line.strip().strip('"'))
+            elif not line.strip():
+                if in_msgstr:
+                    flush()
+                    msgstr_lines = []
+                    in_msgstr = False
+                    current_context = None
+
+        if in_msgstr:
+            flush()
+
+        # ONLY return entries with a non-empty short description
+        return [(p, m, s, l) for p, m, s, l in translations if s]
+
+    def _po_unescape_joined(self, parts):
+        raw = ''.join(parts)
+        return raw.replace('\\n', '\n').replace('\\"', '"').replace('\\\\', '\\')
+
 
 class DDTPTranslateApp(Adw.Application):
     """Main application."""
@@ -866,13 +1159,12 @@ class DDTPTranslateApp(Adw.Application):
         self.create_action("about", self._on_about)
         self.create_action("export-po", self._on_export_po_action)
         self.create_action("import-po", self._on_import_po_action)
-        self._first_run_shown = False
+        self.create_action("clear-queue", self._on_clear_queue_action)
 
     def do_activate(self):
         win = self.props.active_window
         if not win:
             win = MainWindow(self)
-            # Show welcome dialog on first run
             settings = load_settings()
             if not settings.get("welcome_shown"):
                 GLib.idle_add(self._show_welcome, win)
@@ -889,11 +1181,12 @@ class DDTPTranslateApp(Adw.Application):
                 "1. Select your language from the dropdown\n"
                 "2. Browse packages that need translation\n"
                 "3. Write your translation in the editor\n"
-                "4. Submit — the translation is emailed to DDTP for review\n\n"
-                "Your translations help millions of Debian and Ubuntu users "
-                "see package descriptions in their own language.\n\n"
-                "Before submitting, you need to configure an SMTP server "
-                "in Preferences (Gmail works well with an App Password)."
+                "4. Add to queue or submit directly\n"
+                "5. Send the queue — translations are emailed to DDTP\n\n"
+                "Tip: Export as PO, translate in your favorite editor, "
+                "then import back to queue many at once.\n\n"
+                "Before submitting, configure SMTP in Preferences "
+                "(Gmail works well with an App Password)."
             ),
         )
         dialog.add_response("close", _("Get Started"))
@@ -924,6 +1217,11 @@ class DDTPTranslateApp(Adw.Application):
         if win:
             win._on_import_po()
 
+    def _on_clear_queue_action(self, *_args):
+        win = self.props.active_window
+        if win:
+            win._clear_queue()
+
     def _on_preferences(self, *_args):
         win = PreferencesWindow(self.props.active_window)
         win.present()
@@ -936,7 +1234,7 @@ class DDTPTranslateApp(Adw.Application):
             version=__version__,
             developer_name="Daniel Nylander",
             developers=["Daniel Nylander <daniel@danielnylander.se>"],
-            copyright="© 2025 Daniel Nylander",
+            copyright="© 2026 Daniel Nylander",
             license_type=Gtk.License.GPL_3_0,
             website="https://github.com/yeager/ddtp-translate",
             issue_url="https://github.com/yeager/ddtp-translate/issues",
