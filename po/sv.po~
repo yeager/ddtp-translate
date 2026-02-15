@@ -2,27 +2,26 @@
 # Copyright (C) YEAR Daniel Nylander
 # This file is distributed under the same license as the ddtp-translate package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# 
 # Translators:
 # Daniel Nylander <po@danielnylander.se>, 2026
-#
+# 
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: ddtp-translate\n"
 "Report-Msgid-Bugs-To: daniel@danielnylander.se\n"
-"POT-Creation-Date: 2026-02-15 11:02+0100\n"
+"POT-Creation-Date: 2026-02-15 12:19+0100\n"
 "PO-Revision-Date: 2026-02-15 09:12+0000\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>, 2026\n"
-"Language-Team: Swedish (https://app.transifex.com/danielnylander/teams/"
-"304806/sv/)\n"
-"Language: sv\n"
+"Language-Team: Swedish (https://app.transifex.com/danielnylander/teams/304806/sv/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/ddtp_translate/main.py:55 src/ddtp_translate/main.py:172
+#: src/ddtp_translate/main.py:55 src/ddtp_translate/main.py:189
 msgid "Preferences"
 msgstr "Inställningar"
 
@@ -54,90 +53,98 @@ msgstr "Lösenord"
 msgid "Use TLS"
 msgstr "Använd TLS"
 
+#: src/ddtp_translate/main.py:86
+msgid "Quick Setup"
+msgstr "Snabbkonfiguration"
+
 #: src/ddtp_translate/main.py:88
+msgid "Use Gmail"
+msgstr "Använd Gmail"
+
+#: src/ddtp_translate/main.py:100
 msgid "Identity"
 msgstr "Identitet"
 
-#: src/ddtp_translate/main.py:89
+#: src/ddtp_translate/main.py:101
 msgid "Your Name"
 msgstr "Ditt namn"
 
-#: src/ddtp_translate/main.py:93
+#: src/ddtp_translate/main.py:105
 msgid "Your Email"
 msgstr "Din e-postadress"
 
-#: src/ddtp_translate/main.py:122 src/ddtp_translate/main.py:494
+#: src/ddtp_translate/main.py:139 src/ddtp_translate/main.py:511
 msgid "DDTP Translate"
 msgstr "Översätt DDTP"
 
-#: src/ddtp_translate/main.py:155
+#: src/ddtp_translate/main.py:172
 msgid "Refresh"
 msgstr "Uppdatera"
 
-#: src/ddtp_translate/main.py:161
+#: src/ddtp_translate/main.py:178
 msgid "Toggle heatmap view"
-msgstr ""
+msgstr "Växla värmekarta"
 
-#: src/ddtp_translate/main.py:173
+#: src/ddtp_translate/main.py:190
 msgid "About"
 msgstr "Om"
 
-#: src/ddtp_translate/main.py:188
+#: src/ddtp_translate/main.py:205
 msgid "Filter packages…"
 msgstr "Filtrera paket…"
 
-#: src/ddtp_translate/main.py:234
+#: src/ddtp_translate/main.py:251
 msgid "Original (English)"
 msgstr "Original (engelska)"
 
-#: src/ddtp_translate/main.py:252
+#: src/ddtp_translate/main.py:269
 msgid "Translation"
 msgstr "Översättning"
 
-#: src/ddtp_translate/main.py:277 src/ddtp_translate/main.py:341
+#: src/ddtp_translate/main.py:294 src/ddtp_translate/main.py:358
 msgid "Ready"
 msgstr "Redo"
 
-#: src/ddtp_translate/main.py:281
+#: src/ddtp_translate/main.py:298
 msgid "Submit Translation"
 msgstr "Skicka in översättning"
 
-#: src/ddtp_translate/main.py:307
+#: src/ddtp_translate/main.py:324
 msgid "Loading…"
 msgstr "Läser in…"
 
-#: src/ddtp_translate/main.py:340
+#: src/ddtp_translate/main.py:357
 #, python-brace-format
 msgid "{n} untranslated"
 msgstr "{n} icke-översatta"
 
-#: src/ddtp_translate/main.py:406
+#: src/ddtp_translate/main.py:423
 #, python-brace-format
 msgid "Editing: {pkg}"
 msgstr "Redigerar: {pkg}"
 
-#: src/ddtp_translate/main.py:415
+#: src/ddtp_translate/main.py:432
 msgid "Translation is empty"
 msgstr "Översättningen är tom"
 
-#: src/ddtp_translate/main.py:425
+#: src/ddtp_translate/main.py:442
 msgid "Sending…"
 msgstr "Skickar…"
 
-#: src/ddtp_translate/main.py:430
+#: src/ddtp_translate/main.py:447
 msgid "Sent successfully!"
 msgstr "Inskickad!"
 
-#: src/ddtp_translate/main.py:432
+#: src/ddtp_translate/main.py:449
 #, python-brace-format
 msgid "Error: {e}"
 msgstr "Fel: {e}"
 
-#: src/ddtp_translate/main.py:460
+#: src/ddtp_translate/main.py:477
 msgid "SMTP Setup Required"
-msgstr ""
+msgstr "SMTP-konfiguration krävs"
 
-#: src/ddtp_translate/main.py:462
+#: src/ddtp_translate/main.py:479
 msgid ""
 "To submit translations to DDTP, you need to configure an SMTP server.\n"
 "\n"
@@ -147,16 +154,22 @@ msgid ""
 "\n"
 "You also need to set your name and email address."
 msgstr ""
+"För att skicka översättningar till DDTP måste du konfigurera en SMTP-server.\n"
+"\n"
+"Vanliga alternativ:\n"
+"• Gmail: smtp.gmail.com, port 465, TLS på\n"
+"• Outlook: smtp.office365.com, port 587\n"
+"\n"
+"Du måste också ange ditt namn och din e-postadress."
 
-#: src/ddtp_translate/main.py:469
+#: src/ddtp_translate/main.py:486
 msgid "Later"
-msgstr ""
+msgstr "Senare"
 
-#: src/ddtp_translate/main.py:470
-#, fuzzy
+#: src/ddtp_translate/main.py:487
 msgid "Open Preferences"
-msgstr "Inställningar"
+msgstr "Öppna inställningar"
 
-#: src/ddtp_translate/main.py:505
+#: src/ddtp_translate/main.py:522
 msgid "Translate Debian package descriptions via DDTP"
 msgstr "Översätt Debian-paketbeskrivningar via DDTP"

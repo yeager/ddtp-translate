@@ -8,7 +8,10 @@ import time
 import urllib.request
 from pathlib import Path
 
-DDTP_BASE = "https://ddtp2.debian.net/ddt.cgi"
+DDTP_BASE = "https://ddtp.debian.org/ddt.cgi"
+# Fallback: fetch from Debian mirror i18n Translation files
+MIRROR_BASE = "https://deb.debian.org/debian"
+DISTS = ["sid", "trixie", "bookworm"]
 CACHE_TTL = 3600  # 1 hour
 
 # All DDTP-supported language codes
@@ -145,6 +148,130 @@ def fetch_untranslated(lang, force_refresh=False):
         json.dump(packages, f, ensure_ascii=False, indent=2)
 
     return packages
+
+
+def _fetch_translation_file(dist, lang):
+    """Download and decompress Translation-XX.bz2 from Debian mirror."""
+    import bz2
+    url = f"{MIRROR_BASE}/dists/{dist}/main/i18n/Translation-{lang}.bz2"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "ddtp-translate/0.1"})
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            compressed = resp.read()
+        return bz2.decompress(compressed).decode("utf-8", errors="replace")
+    except Exception:
+        return None
+
+
+def _parse_translation_file(text):
+    """Parse Debian Translation file into dict of md5 -> {package, short, long}."""
+    entries = {}
+    current = {}
+    in_desc = False
+
+    for line in text.splitlines():
+        if line.startswith("Package: "):
+            if current.get("md5"):
+                entries[current["md5"]] = current
+            current = {"package": line[9:].strip(), "md5": "", "short": "", "long": ""}
+            in_desc = False
+        elif line.startswith("Description-md5: "):
+            current["md5"] = line[17:].strip()
+        elif line.startswith("Description-"):
+            current["short"] = line.split(": ", 1)[1] if ": " in line else ""
+            in_desc = True
+        elif in_desc and (line.startswith(" ") or line.startswith("\t")):
+            stripped = line.strip()
+            if stripped == ".":
+                current["long"] += "\n"
+            else:
+                if current["long"]:
+                    current["long"] += "\n"
+                current["long"] += stripped
+        else:
+            in_desc = False
+
+    if current.get("md5"):
+        entries[current["md5"]] = current
+    return entries
+
+
+def fetch_untranslated_from_mirror(lang, dist="sid"):
+    """Fetch untranslated descriptions by comparing en vs lang Translation files."""
+    cache = _cache_dir() / f"mirror_untranslated_{lang}_{dist}.json"
+
+    if _is_cache_valid(cache):
+        with open(cache, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    en_text = _fetch_translation_file(dist, "en")
+    if not en_text:
+        raise RuntimeError(f"Failed to download Translation-en for {dist}")
+
+    lang_text = _fetch_translation_file(dist, lang)
+
+    en_entries = _parse_translation_file(en_text)
+    lang_entries = _parse_translation_file(lang_text) if lang_text else {}
+
+    # Untranslated = in en but not in lang
+    untranslated = []
+    for md5, entry in en_entries.items():
+        if md5 not in lang_entries:
+            untranslated.append(entry)
+
+    # Sort by package name
+    untranslated.sort(key=lambda x: x.get("package", ""))
+
+    with open(cache, "w", encoding="utf-8") as f:
+        json.dump(untranslated, f, ensure_ascii=False, indent=2)
+
+    return untranslated
+
+
+def fetch_untranslated(lang, force_refresh=False):
+    """Fetch untranslated descriptions for a language. Returns list of dicts.
+    
+    Tries ddtp.debian.org first, falls back to Debian mirror comparison.
+    """
+    cache = _cache_path(lang)
+
+    if not force_refresh and _is_cache_valid(cache):
+        with open(cache, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    # Try ddtp.debian.org first
+    url = f"{DDTP_BASE}?lcode={lang}&getuntranslated=1"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "ddtp-translate/0.1"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            text = resp.read().decode("utf-8", errors="replace")
+        packages = parse_ddtp_response(text)
+        if packages:
+            with open(cache, "w", encoding="utf-8") as f:
+                json.dump(packages, f, ensure_ascii=False, indent=2)
+            return packages
+    except Exception:
+        pass
+
+    # Fallback: Debian mirror comparison
+    try:
+        packages = fetch_untranslated_from_mirror(lang, "sid")
+        if packages:
+            with open(cache, "w", encoding="utf-8") as f:
+                json.dump(packages, f, ensure_ascii=False, indent=2)
+            return packages
+    except Exception:
+        pass
+
+    # Last resort: stale cache
+    if cache.exists():
+        with open(cache, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    raise RuntimeError(
+        "Could not fetch DDTP data. Both ddtp.debian.org and "
+        "Debian mirror are unreachable."
+    )
 
 
 def get_statistics(lang):
