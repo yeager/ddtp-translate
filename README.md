@@ -1,6 +1,6 @@
 # DDTP Translate
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue)](https://github.com/yeager/ddtp-translate/releases)
+[![Version](https://img.shields.io/badge/version-0.5.2-blue)](https://github.com/yeager/ddtp-translate/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0-green)](LICENSE)
 [![Transifex](https://img.shields.io/badge/translate-Transifex-blue)](https://app.transifex.com/danielnylander/ddtp-translate/)
 
