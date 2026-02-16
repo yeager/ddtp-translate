@@ -1578,8 +1578,7 @@ class DDTPTranslateApp(Adw.Application):
         win.present()
 
     def _on_about(self, *_args):
-        about = Adw.AboutWindow(
-            transient_for=self.props.active_window,
+        about = Adw.AboutDialog(
             application_name=_("DDTP Translate"),
             application_icon=APP_ID,
             version=__version__,
@@ -1593,7 +1592,7 @@ class DDTPTranslateApp(Adw.Application):
             translator_credits="Daniel Nylander <daniel@danielnylander.se>",
             comments=_("Translate Debian package descriptions via DDTP"),
         )
-        about.present()
+        about.present(self.props.active_window)
 
 
 def main():
