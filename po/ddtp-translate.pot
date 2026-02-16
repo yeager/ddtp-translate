@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ddtp-translate 0.6.0\n"
+"Project-Id-Version: ddtp-translate 0.7.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-16 14:04+0100\n"
+"POT-Creation-Date: 2026-02-16 16:14+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,346 +17,358 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/ddtp_translate/main.py:131 src/ddtp_translate/main.py:451
+#: src/ddtp_translate/main.py:134 src/ddtp_translate/main.py:458
 msgid "Preferences"
 msgstr ""
 
-#: src/ddtp_translate/main.py:138
+#: src/ddtp_translate/main.py:141
 msgid "SMTP"
 msgstr ""
 
-#: src/ddtp_translate/main.py:139
+#: src/ddtp_translate/main.py:142
 msgid "Mail Server"
 msgstr ""
 
-#: src/ddtp_translate/main.py:141
+#: src/ddtp_translate/main.py:144
 msgid "SMTP Host"
 msgstr ""
 
-#: src/ddtp_translate/main.py:145
+#: src/ddtp_translate/main.py:148
 msgid "SMTP Port"
 msgstr ""
 
-#: src/ddtp_translate/main.py:149
+#: src/ddtp_translate/main.py:152
 msgid "Username"
 msgstr ""
 
-#: src/ddtp_translate/main.py:153 src/ddtp_translate/main.py:213
+#: src/ddtp_translate/main.py:156 src/ddtp_translate/main.py:216
 msgid "Password"
 msgstr ""
 
-#: src/ddtp_translate/main.py:157
+#: src/ddtp_translate/main.py:160
 msgid "Use TLS"
 msgstr ""
 
-#: src/ddtp_translate/main.py:162
+#: src/ddtp_translate/main.py:165
 msgid "Quick Setup"
 msgstr ""
 
-#: src/ddtp_translate/main.py:164
+#: src/ddtp_translate/main.py:167
 msgid "Use Gmail"
 msgstr ""
 
-#: src/ddtp_translate/main.py:176
+#: src/ddtp_translate/main.py:179
 msgid "Identity"
 msgstr ""
 
-#: src/ddtp_translate/main.py:177
+#: src/ddtp_translate/main.py:180
 msgid "Your Name"
 msgstr ""
 
-#: src/ddtp_translate/main.py:181
+#: src/ddtp_translate/main.py:184
 msgid "Your Email"
 msgstr ""
 
-#: src/ddtp_translate/main.py:189
+#: src/ddtp_translate/main.py:192
 msgid "DDTSS"
 msgstr ""
 
-#: src/ddtp_translate/main.py:192
+#: src/ddtp_translate/main.py:195
 msgid "Submission Method"
 msgstr ""
 
-#: src/ddtp_translate/main.py:193
+#: src/ddtp_translate/main.py:196
 msgid "DDTSS (web) is recommended. SMTP (email) is legacy and may not work."
 msgstr ""
 
-#: src/ddtp_translate/main.py:195
+#: src/ddtp_translate/main.py:198
 msgid "Submit via"
 msgstr ""
 
-#: src/ddtp_translate/main.py:206
+#: src/ddtp_translate/main.py:209
 msgid "DDTSS Account"
 msgstr ""
 
-#: src/ddtp_translate/main.py:207
+#: src/ddtp_translate/main.py:210
 msgid ""
 "Create an account at https://ddtp.debian.org/ddtss/index.cgi/createlogin"
 msgstr ""
 
-#: src/ddtp_translate/main.py:209
+#: src/ddtp_translate/main.py:212
 msgid "Alias"
 msgstr ""
 
-#: src/ddtp_translate/main.py:218 src/ddtp_translate/main.py:289
-#: src/ddtp_translate/main.py:301
+#: src/ddtp_translate/main.py:221 src/ddtp_translate/main.py:292
+#: src/ddtp_translate/main.py:304
 msgid "Test Login"
 msgstr ""
 
-#: src/ddtp_translate/main.py:230
+#: src/ddtp_translate/main.py:233
 msgid "Sending"
 msgstr ""
 
-#: src/ddtp_translate/main.py:232
+#: src/ddtp_translate/main.py:235
 msgid "Rate Limiting"
 msgstr ""
 
-#: src/ddtp_translate/main.py:233
+#: src/ddtp_translate/main.py:236
 msgid "Delay between email submissions to avoid flooding the DDTP server."
 msgstr ""
 
-#: src/ddtp_translate/main.py:237
+#: src/ddtp_translate/main.py:240
 msgid "Delay between emails (seconds)"
 msgstr ""
 
-#: src/ddtp_translate/main.py:245
+#: src/ddtp_translate/main.py:248
 msgid "Display"
 msgstr ""
 
-#: src/ddtp_translate/main.py:246
+#: src/ddtp_translate/main.py:249
 msgid "Limit how many packages are loaded into the list for faster startup."
 msgstr ""
 
-#: src/ddtp_translate/main.py:249
+#: src/ddtp_translate/main.py:252
 msgid "Max packages to display"
 msgstr ""
 
-#: src/ddtp_translate/main.py:253
+#: src/ddtp_translate/main.py:256
 msgid "All"
 msgstr ""
 
-#: src/ddtp_translate/main.py:266
+#: src/ddtp_translate/main.py:269
 msgid "Logging"
 msgstr ""
 
-#: src/ddtp_translate/main.py:267
+#: src/ddtp_translate/main.py:270
 msgid "Enable event logging to track application activity."
 msgstr ""
 
-#: src/ddtp_translate/main.py:269
+#: src/ddtp_translate/main.py:272
 msgid "Enable event logging"
 msgstr ""
 
-#: src/ddtp_translate/main.py:288
+#: src/ddtp_translate/main.py:291
 msgid "Enter alias and password first"
 msgstr ""
 
-#: src/ddtp_translate/main.py:296
+#: src/ddtp_translate/main.py:299
 msgid "Login successful!"
 msgstr ""
 
-#: src/ddtp_translate/main.py:349 src/ddtp_translate/main.py:2095
+#: src/ddtp_translate/main.py:352 src/ddtp_translate/main.py:2183
 msgid "DDTP Translate"
 msgstr ""
 
-#: src/ddtp_translate/main.py:386
+#: src/ddtp_translate/main.py:393
 msgid "Refresh"
 msgstr ""
 
-#: src/ddtp_translate/main.py:391
+#: src/ddtp_translate/main.py:398
 msgid "Sort packages"
 msgstr ""
 
-#: src/ddtp_translate/main.py:398
+#: src/ddtp_translate/main.py:405
 msgid "Toggle heatmap view"
 msgstr ""
 
-#: src/ddtp_translate/main.py:414 src/ddtp_translate/main.py:448
+#: src/ddtp_translate/main.py:421 src/ddtp_translate/main.py:455
 msgid "Show Queue"
 msgstr ""
 
-#: src/ddtp_translate/main.py:419 src/ddtp_translate/main.py:447
+#: src/ddtp_translate/main.py:426 src/ddtp_translate/main.py:454
 msgid "Review translations"
 msgstr ""
 
-#: src/ddtp_translate/main.py:424 src/ddtp_translate/main.py:450
+#: src/ddtp_translate/main.py:431 src/ddtp_translate/main.py:457
 msgid "Statistics"
 msgstr ""
 
-#: src/ddtp_translate/main.py:429
+#: src/ddtp_translate/main.py:436
 msgid "Lint translation"
 msgstr ""
 
-#: src/ddtp_translate/main.py:434
+#: src/ddtp_translate/main.py:441
 msgid "Import translated PO file"
 msgstr ""
 
-#: src/ddtp_translate/main.py:439
+#: src/ddtp_translate/main.py:446
 msgid "Export as PO file"
 msgstr ""
 
-#: src/ddtp_translate/main.py:445
+#: src/ddtp_translate/main.py:452
 msgid "Export as PO file…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:446
+#: src/ddtp_translate/main.py:453
 msgid "Import translated PO…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:449
+#: src/ddtp_translate/main.py:456
 msgid "Clear queue"
 msgstr ""
 
-#: src/ddtp_translate/main.py:452
+#: src/ddtp_translate/main.py:459
 msgid "About"
 msgstr ""
 
-#: src/ddtp_translate/main.py:465
+#: src/ddtp_translate/main.py:472
 msgid "Filter packages…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:516
+#: src/ddtp_translate/main.py:523
 msgid "Original (English)"
 msgstr ""
 
-#: src/ddtp_translate/main.py:534
+#: src/ddtp_translate/main.py:541
 msgid "Translation"
 msgstr ""
 
-#: src/ddtp_translate/main.py:559 src/ddtp_translate/main.py:713
-#: src/ddtp_translate/main.py:1431 src/ddtp_translate/main.py:1555
+#: src/ddtp_translate/main.py:567 src/ddtp_translate/main.py:743
+#: src/ddtp_translate/main.py:1480 src/ddtp_translate/main.py:1604
 msgid "Ready"
 msgstr ""
 
-#: src/ddtp_translate/main.py:564
+#: src/ddtp_translate/main.py:572
 msgid "Add to Queue"
 msgstr ""
 
-#: src/ddtp_translate/main.py:565
+#: src/ddtp_translate/main.py:573
 msgid "Add this translation to the send queue"
 msgstr ""
 
-#: src/ddtp_translate/main.py:571
+#: src/ddtp_translate/main.py:579
 msgid "Submit Now"
 msgstr ""
 
-#: src/ddtp_translate/main.py:597
+#: src/ddtp_translate/main.py:605
 #, python-brace-format
 msgid "{s} seconds"
 msgstr ""
 
-#: src/ddtp_translate/main.py:600
+#: src/ddtp_translate/main.py:608
 #, python-brace-format
 msgid "{m} minutes"
 msgstr ""
 
-#: src/ddtp_translate/main.py:602
+#: src/ddtp_translate/main.py:610
 #, python-brace-format
 msgid "{h}h {m}m"
 msgstr ""
 
-#: src/ddtp_translate/main.py:626
+#: src/ddtp_translate/main.py:634
 msgid "Loading…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:629
+#: src/ddtp_translate/main.py:637
 msgid "Downloading package data…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:661
+#: src/ddtp_translate/main.py:669
 #, python-brace-format
 msgid "{n} packages loaded"
 msgstr ""
 
-#: src/ddtp_translate/main.py:668
+#: src/ddtp_translate/main.py:676
 #, python-brace-format
 msgid "{shown} of {total} untranslated"
 msgstr ""
 
-#: src/ddtp_translate/main.py:678
+#: src/ddtp_translate/main.py:686
 msgid ""
 "Could not connect to DDTP servers. Check your internet connection and try "
 "again."
 msgstr ""
 
-#: src/ddtp_translate/main.py:680
+#: src/ddtp_translate/main.py:688
 #, python-brace-format
 msgid "Failed to load packages: {error}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:712
+#: src/ddtp_translate/main.py:726
+msgid "Submitted ✅"
+msgstr ""
+
+#: src/ddtp_translate/main.py:731
+msgid "In queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:736
+msgid "Modified — not in queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:742
 #, python-brace-format
 msgid "{n} untranslated"
 msgstr ""
 
-#: src/ddtp_translate/main.py:780
+#: src/ddtp_translate/main.py:822
 #, python-brace-format
 msgid "Editing: {pkg}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:791 src/ddtp_translate/main.py:872
+#: src/ddtp_translate/main.py:833 src/ddtp_translate/main.py:917
 msgid "Translation is empty"
 msgstr ""
 
-#: src/ddtp_translate/main.py:798 src/ddtp_translate/main.py:1606
+#: src/ddtp_translate/main.py:840 src/ddtp_translate/main.py:1655
 msgid "SMTP not configured — open Preferences first"
 msgstr ""
 
-#: src/ddtp_translate/main.py:801 src/ddtp_translate/main.py:1090
-#: src/ddtp_translate/main.py:1591
+#: src/ddtp_translate/main.py:843 src/ddtp_translate/main.py:1139
+#: src/ddtp_translate/main.py:1640
 msgid "DDTSS not configured — open Preferences first"
 msgstr ""
 
-#: src/ddtp_translate/main.py:811
+#: src/ddtp_translate/main.py:853
 msgid "Sending…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:826
+#: src/ddtp_translate/main.py:871
 #, python-brace-format
 msgid "Login failed: {e}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:829
+#: src/ddtp_translate/main.py:874
 #, python-brace-format
 msgid "Validation error: {e}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:832
+#: src/ddtp_translate/main.py:877
 #, python-brace-format
 msgid "Package locked: {e}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:835 src/ddtp_translate/main.py:1104
-#: src/ddtp_translate/main.py:1213
+#: src/ddtp_translate/main.py:880 src/ddtp_translate/main.py:1153
+#: src/ddtp_translate/main.py:1262
 #, python-brace-format
 msgid "Error: {e}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:845
+#: src/ddtp_translate/main.py:890
 msgid "Sent successfully!"
 msgstr ""
 
-#: src/ddtp_translate/main.py:848
+#: src/ddtp_translate/main.py:893
 msgid "Translation submitted"
 msgstr ""
 
-#: src/ddtp_translate/main.py:849
+#: src/ddtp_translate/main.py:894
 #, python-brace-format
 msgid ""
 "Package \"{pkg}\" was submitted successfully and is now pending review on "
 "DDTSS."
 msgstr ""
 
-#: src/ddtp_translate/main.py:851 src/ddtp_translate/main.py:860
-#: src/ddtp_translate/main.py:1410
+#: src/ddtp_translate/main.py:896 src/ddtp_translate/main.py:905
+#: src/ddtp_translate/main.py:1459
 msgid "OK"
 msgstr ""
 
-#: src/ddtp_translate/main.py:857
+#: src/ddtp_translate/main.py:902
 msgid "Submission failed"
 msgstr ""
 
-#: src/ddtp_translate/main.py:858
+#: src/ddtp_translate/main.py:903
 #, python-brace-format
 msgid ""
 "Package \"{pkg}\" could not be submitted.\n"
@@ -364,204 +376,204 @@ msgid ""
 "{err}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:890
+#: src/ddtp_translate/main.py:937
 #, python-brace-format
 msgid "Updated {pkg} in queue"
 msgstr ""
 
-#: src/ddtp_translate/main.py:897
+#: src/ddtp_translate/main.py:946
 #, python-brace-format
 msgid "Added {pkg} to queue ({n} total)"
 msgstr ""
 
-#: src/ddtp_translate/main.py:941
+#: src/ddtp_translate/main.py:990
 #, python-brace-format
 msgid "Removed {pkg} from queue"
 msgstr ""
 
-#: src/ddtp_translate/main.py:949
+#: src/ddtp_translate/main.py:998
 msgid "Send Queue"
 msgstr ""
 
-#: src/ddtp_translate/main.py:961
+#: src/ddtp_translate/main.py:1010
 msgid "Sort queue"
 msgstr ""
 
-#: src/ddtp_translate/main.py:985
+#: src/ddtp_translate/main.py:1034
 #, python-brace-format
 msgid " — ETA: {eta}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:989
+#: src/ddtp_translate/main.py:1038
 #, python-brace-format
 msgid "{n} ready"
 msgstr ""
 
-#: src/ddtp_translate/main.py:991
+#: src/ddtp_translate/main.py:1040
 #, python-brace-format
 msgid "{n} sent ✅"
 msgstr ""
 
-#: src/ddtp_translate/main.py:993
+#: src/ddtp_translate/main.py:1042
 #, python-brace-format
 msgid "{n} errors"
 msgstr ""
 
-#: src/ddtp_translate/main.py:996
+#: src/ddtp_translate/main.py:1045
 msgid "Queue is empty"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1013
+#: src/ddtp_translate/main.py:1062
 msgid "Clear sent ✅"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1017
+#: src/ddtp_translate/main.py:1066
 msgid "Clear all"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1022
+#: src/ddtp_translate/main.py:1071
 #, python-brace-format
 msgid "Send All ({n})"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1062
+#: src/ddtp_translate/main.py:1111
 msgid "Error"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1069
+#: src/ddtp_translate/main.py:1118
 msgid "Remove from queue"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1087
+#: src/ddtp_translate/main.py:1136
 msgid "Review requires DDTSS (not SMTP)"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1093
+#: src/ddtp_translate/main.py:1142
 msgid "Loading reviews…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1114
+#: src/ddtp_translate/main.py:1163
 msgid "Review Translations"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1127
+#: src/ddtp_translate/main.py:1176
 msgid "No pending reviews"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1128
+#: src/ddtp_translate/main.py:1177
 msgid "There are no translations waiting for review."
 msgstr ""
 
-#: src/ddtp_translate/main.py:1150
+#: src/ddtp_translate/main.py:1199
 #, python-brace-format
 msgid "Pending review ({n})"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1169
+#: src/ddtp_translate/main.py:1218
 #, python-brace-format
 msgid "Reviewed by you ({n})"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1189
+#: src/ddtp_translate/main.py:1238
 #, python-brace-format
 msgid "{pending} pending, {reviewed} reviewed by you"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1203
+#: src/ddtp_translate/main.py:1252
 #, python-brace-format
 msgid "Loading review for {pkg}…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1223
+#: src/ddtp_translate/main.py:1272
 #, python-brace-format
 msgid "Review: {pkg}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1233
+#: src/ddtp_translate/main.py:1282
 msgid "Back to list"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1251
+#: src/ddtp_translate/main.py:1300
 #, python-brace-format
 msgid "Owner: {owner}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1258
+#: src/ddtp_translate/main.py:1307
 msgid "Original short description"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1268
+#: src/ddtp_translate/main.py:1317
 msgid "Translated short description"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1277
+#: src/ddtp_translate/main.py:1326
 msgid "Original long description"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1287
+#: src/ddtp_translate/main.py:1336
 msgid "Translated long description"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1301
+#: src/ddtp_translate/main.py:1350
 msgid "Comment (optional)"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1315
+#: src/ddtp_translate/main.py:1364
 msgid "Log"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1342
+#: src/ddtp_translate/main.py:1391
 msgid "Submitting review…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1365
+#: src/ddtp_translate/main.py:1414
 msgid "Comment only"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1366
+#: src/ddtp_translate/main.py:1415
 msgid "Save comment without accepting"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1370
+#: src/ddtp_translate/main.py:1419
 msgid "Accept with changes"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1372
+#: src/ddtp_translate/main.py:1421
 msgid "Accept translation with your modifications — restarts review"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1376
+#: src/ddtp_translate/main.py:1425
 msgid "Accept as is"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1378
+#: src/ddtp_translate/main.py:1427
 msgid "Accept translation without changes"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1391
+#: src/ddtp_translate/main.py:1440
 #, python-brace-format
 msgid "Translation for \"{pkg}\" accepted."
 msgstr ""
 
-#: src/ddtp_translate/main.py:1393
+#: src/ddtp_translate/main.py:1442
 #, python-brace-format
 msgid "Translation for \"{pkg}\" accepted with changes (review restarted)."
 msgstr ""
 
-#: src/ddtp_translate/main.py:1395
+#: src/ddtp_translate/main.py:1444
 #, python-brace-format
 msgid "Comment saved for \"{pkg}\"."
 msgstr ""
 
-#: src/ddtp_translate/main.py:1399
+#: src/ddtp_translate/main.py:1448
 msgid "Review submitted"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1406
+#: src/ddtp_translate/main.py:1455
 msgid "Review failed"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1407
+#: src/ddtp_translate/main.py:1456
 #, python-brace-format
 msgid ""
 "Could not submit review for \"{pkg}\".\n"
@@ -569,16 +581,16 @@ msgid ""
 "{err}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1418
+#: src/ddtp_translate/main.py:1467
 msgid "Fetching statistics…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1426
+#: src/ddtp_translate/main.py:1475
 #, python-brace-format
 msgid "Failed to fetch statistics: {e}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1453
+#: src/ddtp_translate/main.py:1502
 #, python-brace-format
 msgid ""
 "Language: {lang} ({code})\n"
@@ -593,28 +605,28 @@ msgid ""
 "Completion: {pct:.1f}% of active packages"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1469
+#: src/ddtp_translate/main.py:1518
 msgid "DDTP Statistics"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1472 src/ddtp_translate/main.py:1507
-#: src/ddtp_translate/main.py:1573 src/ddtp_translate/main.py:1699
+#: src/ddtp_translate/main.py:1521 src/ddtp_translate/main.py:1556
+#: src/ddtp_translate/main.py:1622 src/ddtp_translate/main.py:1748
 msgid "Close"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1486
+#: src/ddtp_translate/main.py:1535
 msgid "No package selected"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1492
+#: src/ddtp_translate/main.py:1541
 msgid "Translation is empty — nothing to lint"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1498
+#: src/ddtp_translate/main.py:1547
 msgid "l10n-lint not found"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1500
+#: src/ddtp_translate/main.py:1549
 msgid ""
 "l10n-lint is not installed.\n"
 "\n"
@@ -625,42 +637,42 @@ msgid ""
 "  apt install l10n-lint"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1530
+#: src/ddtp_translate/main.py:1579
 msgid "Running l10n-lint…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1550
+#: src/ddtp_translate/main.py:1599
 #, python-brace-format
 msgid "Lint error: {e}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1557
+#: src/ddtp_translate/main.py:1606
 msgid "Lint: No issues found ✓"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1558
+#: src/ddtp_translate/main.py:1607
 msgid "The translation passed all lint checks."
 msgstr ""
 
-#: src/ddtp_translate/main.py:1560
+#: src/ddtp_translate/main.py:1609
 msgid "Lint: Passed with notes"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1563
+#: src/ddtp_translate/main.py:1612
 msgid "Lint: Issues found"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1564
+#: src/ddtp_translate/main.py:1613
 #, python-brace-format
 msgid "l10n-lint reported errors (exit code {c})."
 msgstr ""
 
-#: src/ddtp_translate/main.py:1595
+#: src/ddtp_translate/main.py:1644
 #, python-brace-format
 msgid "Submit {n} translations via DDTSS?"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1597
+#: src/ddtp_translate/main.py:1646
 #, python-brace-format
 msgid ""
 "You are about to submit {n} translation(s) to the DDTSS web interface.\n"
@@ -671,12 +683,12 @@ msgid ""
 "• Any errors will be shown per package"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1612
+#: src/ddtp_translate/main.py:1661
 #, python-brace-format
 msgid "Send {n} translations to DDTP?"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1614
+#: src/ddtp_translate/main.py:1663
 #, python-brace-format
 msgid ""
 "You are about to send {n} translation(s) to the Debian Description "
@@ -697,94 +709,123 @@ msgid ""
 "Make sure your SMTP settings and email address are correct."
 msgstr ""
 
-#: src/ddtp_translate/main.py:1630 src/ddtp_translate/main.py:1694
+#: src/ddtp_translate/main.py:1679 src/ddtp_translate/main.py:1743
+#: src/ddtp_translate/main.py:1877
 msgid "Cancel"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1631
+#: src/ddtp_translate/main.py:1680
 msgid "Submit All"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1631
+#: src/ddtp_translate/main.py:1680
 msgid "I understand — Send All"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1651
+#: src/ddtp_translate/main.py:1700
 msgid "Sending Translations"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1664
+#: src/ddtp_translate/main.py:1713
 msgid "Sending translations…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1722
+#: src/ddtp_translate/main.py:1771
 msgid "⏸ Cancelling after current email…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1737
+#: src/ddtp_translate/main.py:1786
 #, python-brace-format
 msgid "❌ Cancelled by user. {sent}/{total} sent."
 msgstr ""
 
-#: src/ddtp_translate/main.py:1744
+#: src/ddtp_translate/main.py:1793
 #, python-brace-format
 msgid "Sending: {pkg} ({i}/{total})"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1777
+#: src/ddtp_translate/main.py:1828
 #, python-brace-format
 msgid "Next email in {s} seconds…"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1785
+#: src/ddtp_translate/main.py:1836
 #, python-brace-format
 msgid "Done! {sent} sent, {errors} errors out of {total}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1790
+#: src/ddtp_translate/main.py:1841
 #, python-brace-format
 msgid "All {n} translations submitted"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1792
+#: src/ddtp_translate/main.py:1843
 #, python-brace-format
 msgid "All {n} submissions failed"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1794
+#: src/ddtp_translate/main.py:1845
 #, python-brace-format
 msgid "{sent} sent, {errors} failed"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1807
+#: src/ddtp_translate/main.py:1864
+#, python-brace-format
+msgid "{n} translation(s) in queue not yet submitted"
+msgstr ""
+
+#: src/ddtp_translate/main.py:1866
+#, python-brace-format
+msgid "{n} translation(s) modified but not added to queue"
+msgstr ""
+
+#: src/ddtp_translate/main.py:1873
+msgid "Quit DDTP Translate?"
+msgstr ""
+
+#: src/ddtp_translate/main.py:1874
+#, python-brace-format
+msgid ""
+"You have unsaved work:\n"
+"\n"
+"• {items}\n"
+"\n"
+"This will be lost if you quit."
+msgstr ""
+
+#: src/ddtp_translate/main.py:1878
+msgid "Quit anyway"
+msgstr ""
+
+#: src/ddtp_translate/main.py:1895
 msgid "No packages loaded to export"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1814 src/ddtp_translate/main.py:1881
+#: src/ddtp_translate/main.py:1902 src/ddtp_translate/main.py:1969
 msgid "PO files"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1860
+#: src/ddtp_translate/main.py:1948
 #, python-brace-format
 msgid "Exported {n} packages to {path}"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1898
+#: src/ddtp_translate/main.py:1986
 msgid ""
 "No translated entries found in file (only entries with translations are "
 "imported)"
 msgstr ""
 
-#: src/ddtp_translate/main.py:1923
+#: src/ddtp_translate/main.py:2011
 #, python-brace-format
 msgid "Imported {added} new, {updated} updated — {total} in queue"
 msgstr ""
 
-#: src/ddtp_translate/main.py:2025
+#: src/ddtp_translate/main.py:2113
 msgid "Welcome to DDTP Translate"
 msgstr ""
 
-#: src/ddtp_translate/main.py:2027
+#: src/ddtp_translate/main.py:2115
 msgid ""
 "This app helps you translate Debian package descriptions through the Debian "
 "Description Translation Project (DDTP).\n"
@@ -803,18 +844,10 @@ msgid ""
 "App Password)."
 msgstr ""
 
-#: src/ddtp_translate/main.py:2041
+#: src/ddtp_translate/main.py:2129
 msgid "Get Started"
 msgstr ""
 
-#: src/ddtp_translate/main.py:2106
+#: src/ddtp_translate/main.py:2194
 msgid "Translate Debian package descriptions via DDTP"
-msgstr ""
-
-#: ddtp-translate/data/se.danielnylander.ddtp-translate.desktop.in
-msgid "Translation Tool"
-msgstr ""
-
-#: ddtp-translate/data/se.danielnylander.ddtp-translate.desktop.in
-msgid "debian;translation;ddtp;localization;l10n;"
 msgstr ""
