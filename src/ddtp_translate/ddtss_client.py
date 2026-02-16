@@ -155,15 +155,30 @@ class DDTSSClient:
         self._cookie_file.parent.mkdir(parents=True, exist_ok=True)
         self._cookie_jar.save(str(self._cookie_file), ignore_discard=True)
 
-    def _request(self, url, data=None, method="GET"):
+    def _request(self, url, data=None, method="GET", multipart=False):
         """Make an HTTP request and return (status_code, body_text).
 
         Raises DDTSSError on connection failures.
         """
         headers = {"User-Agent": USER_AGENT}
         if data is not None:
-            encoded = urllib.parse.urlencode(data).encode("utf-8")
-            req = urllib.request.Request(url, data=encoded, headers=headers, method="POST")
+            if multipart:
+                # DDTSS forms use multipart/form-data encoding
+                boundary = "----DDTPTranslateBoundary"
+                parts = []
+                for key, value in data.items():
+                    parts.append(
+                        f"--{boundary}\r\n"
+                        f'Content-Disposition: form-data; name="{key}"\r\n\r\n'
+                        f"{value}\r\n"
+                    )
+                parts.append(f"--{boundary}--\r\n")
+                body = "".join(parts).encode("utf-8")
+                headers["Content-Type"] = f"multipart/form-data; boundary={boundary}"
+                req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+            else:
+                encoded = urllib.parse.urlencode(data).encode("utf-8")
+                req = urllib.request.Request(url, data=encoded, headers=headers, method="POST")
         else:
             req = urllib.request.Request(url, headers=headers, method=method)
 
@@ -221,7 +236,7 @@ class DDTSSClient:
             "password": password,
             "submit": "Submit",
         }
-        status, body = self._request(url, data=data)
+        status, body = self._request(url, data=data, multipart=True)
         self._check_error(body)
 
         # Successful login redirects to main page or shows logged-in status
@@ -361,9 +376,10 @@ class DDTSSClient:
             "long": long,
             "comment": comment,
             "submit": "Submit",
+            "_charset_": "UTF-8",
         }
 
-        status, body = self._request(url, data=data)
+        status, body = self._request(url, data=data, multipart=True)
         self._check_error(body)
 
         # If _check_error passed (no DDTSS error found) and we got HTTP 200,
@@ -392,7 +408,7 @@ class DDTSSClient:
         else:
             data["refuse"] = "Refuse the suggestion"
 
-        status, body = self._request(url, data=data)
+        status, body = self._request(url, data=data, multipart=True)
         self._check_error(body)
         return True
 
@@ -406,8 +422,8 @@ class DDTSSClient:
             True on success.
         """
         url = f"{DDTSS_BASE}/{self.lang}/translate/{urllib.parse.quote(package)}"
-        data = {"abandon": "Abandon"}
-        status, body = self._request(url, data=data)
+        data = {"abandon": "Abandon", "_charset_": "UTF-8"}
+        status, body = self._request(url, data=data, multipart=True)
         self._check_error(body)
         return True
 
