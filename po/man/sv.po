@@ -10,7 +10,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2026-02-15 15:38+0100\n"
+"POT-Creation-Date: 2026-02-16 08:43+0000\n"
 "PO-Revision-Date: 2026-02-15 14:38+0000\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>, 2026\n"
 "Language-Team: Swedish (https://app.transifex.com/danielnylander/"
@@ -75,12 +75,19 @@ msgstr "BESKRIVNING"
 
 #. type: Plain text
 #: data/man/ddtp-translate.1:8
+#, fuzzy
+#| msgid ""
+#| "B<ddtp-translate> is a GTK4/Adwaita application for translating Debian "
+#| "package descriptions via DDTP. It provides a side-by-side editor with "
+#| "original English descriptions and translation area, direct DDTP "
+#| "submission via email, configurable SMTP settings, local caching, search "
+#| "and filter, and statistics per language."
 msgid ""
 "B<ddtp-translate> is a GTK4/Adwaita application for translating Debian "
-"package descriptions via DDTP. It provides a side-by-side editor with "
-"original English descriptions and translation area, direct DDTP submission "
-"via email, configurable SMTP settings, local caching, search and filter, and "
-"statistics per language."
+"package descriptions via the Debian Description Translation Project (DDTP). "
+"The application provides a sophisticated side-by-side editor interface "
+"showing original English package descriptions alongside a translation area "
+"for easy comparison and editing."
 msgstr ""
 "B<ddtp-translate> är ett GTK4/Adwaita-program för översättning av Debian-"
 "paketbeskrivningar via DDTP. Det har en redigerare där "
@@ -89,80 +96,101 @@ msgstr ""
 "inställningar, lokal caching, sök- och filterfunktioner samt statistik per "
 "språk."
 
+#. type: Plain text
+#: data/man/ddtp-translate.1:10
+msgid ""
+"The application integrates with DDTP email submission workflows, allowing "
+"direct submission of completed translations. It features configurable SMTP "
+"settings for email delivery and uses the system keyring for secure password "
+"storage. Integration with l10n-lint provides quality checking of "
+"translations before submission."
+msgstr ""
+
+#. type: Plain text
+#: data/man/ddtp-translate.1:12
+msgid ""
+"Version 0.4.0 introduces enhanced features including statistics fetched from "
+"ddtp.debian.org, save and load functionality for translation queues, a lint "
+"button for immediate translation validation, and comprehensive event "
+"logging. The queue management system helps translators organize their work "
+"efficiently, while detailed statistics provide insights into translation "
+"progress and coverage across different package categories."
+msgstr ""
+
 #. type: SH
-#: data/man/ddtp-translate.1:8
+#: data/man/ddtp-translate.1:12
 #, no-wrap
 msgid "OPTIONS"
 msgstr "FLAGGOR"
 
 #. type: TP
-#: data/man/ddtp-translate.1:9
+#: data/man/ddtp-translate.1:13
 #, no-wrap
 msgid "B<--help>"
 msgstr "B<--help>"
 
 #. type: Plain text
-#: data/man/ddtp-translate.1:12
+#: data/man/ddtp-translate.1:16
 msgid "Show help message and exit."
 msgstr "Visa hjälpmeddelande och avsluta."
 
 #. type: SH
-#: data/man/ddtp-translate.1:12
+#: data/man/ddtp-translate.1:16
 #, no-wrap
 msgid "FILES"
 msgstr "FILER"
 
 #. type: TP
-#: data/man/ddtp-translate.1:13
+#: data/man/ddtp-translate.1:17
 #, no-wrap
 msgid "I<~/.config/ddtp-translate/>"
 msgstr "I<~/.config/ddtp-translate/>"
 
 #. type: Plain text
-#: data/man/ddtp-translate.1:16
+#: data/man/ddtp-translate.1:20
 msgid "Configuration files."
 msgstr "Konfigurationsfiler."
 
 #. type: TP
-#: data/man/ddtp-translate.1:16
+#: data/man/ddtp-translate.1:20
 #, no-wrap
 msgid "I<~/.cache/ddtp-translate/>"
 msgstr "I<~/.cache/ddtp-translate/>"
 
 #. type: Plain text
-#: data/man/ddtp-translate.1:19
+#: data/man/ddtp-translate.1:23
 msgid "Cached data."
 msgstr "Cachat data."
 
 #. type: SH
-#: data/man/ddtp-translate.1:19
+#: data/man/ddtp-translate.1:23
 #, no-wrap
 msgid "BUGS"
 msgstr "BUGGAR"
 
 #. type: Plain text
-#: data/man/ddtp-translate.1:21
+#: data/man/ddtp-translate.1:25
 msgid "Report bugs at https://github.com/yeager/ddtp-translate/issues"
 msgstr "Rapportera buggar på https://github.com/yeager/ddtp-translate/issues"
 
 #. type: SH
-#: data/man/ddtp-translate.1:21
+#: data/man/ddtp-translate.1:25
 #, no-wrap
 msgid "AUTHOR"
 msgstr "UPPHOVSPERSON"
 
 #. type: Plain text
-#: data/man/ddtp-translate.1:23
+#: data/man/ddtp-translate.1:27
 msgid "Daniel Nylander E<lt>daniel@danielnylander.seE<gt>"
 msgstr "Daniel Nylander E<lt>daniel@danielnylander.seE<gt>"
 
 #. type: SH
-#: data/man/ddtp-translate.1:23
+#: data/man/ddtp-translate.1:27
 #, no-wrap
 msgid "SEE ALSO"
 msgstr "SE ÄVEN"
 
 #. type: Plain text
-#: data/man/ddtp-translate.1:24
+#: data/man/ddtp-translate.1:28
 msgid "Project homepage: https://github.com/yeager/ddtp-translate"
 msgstr "Projektets webbsida: https://github.com/yeager/ddtp-translate"
