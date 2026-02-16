@@ -814,23 +814,46 @@ class MainWindow(Adw.ApplicationWindow):
                 else:
                     send_translation(pkg["package"], pkg["md5"], lang, short, long_text)
                 self._last_send_time = time.time()
-                GLib.idle_add(self.status_label.set_text, _("Sent successfully!"))
+                GLib.idle_add(self._show_submit_result, pkg["package"], True, "")
             except DDTSSAuthError as exc:
-                GLib.idle_add(self.status_label.set_text,
-                    _("DDTSS login failed: {e}").format(e=str(exc)))
+                GLib.idle_add(self._show_submit_result, pkg["package"], False,
+                    _("Login failed: {e}").format(e=str(exc)))
             except DDTSSValidationError as exc:
-                GLib.idle_add(self.status_label.set_text,
+                GLib.idle_add(self._show_submit_result, pkg["package"], False,
                     _("Validation error: {e}").format(e=str(exc)))
             except DDTSSLockedError as exc:
-                GLib.idle_add(self.status_label.set_text,
+                GLib.idle_add(self._show_submit_result, pkg["package"], False,
                     _("Package locked: {e}").format(e=str(exc)))
             except Exception as exc:
-                GLib.idle_add(self.status_label.set_text, _("Error: {e}").format(e=str(exc)))
+                GLib.idle_add(self._show_submit_result, pkg["package"], False,
+                    _("Error: {e}").format(e=str(exc)))
             GLib.idle_add(self.submit_btn.set_sensitive, True)
 
         threading.Thread(target=do_send, daemon=True).start()
 
     # --- Queue management ---
+
+    def _show_submit_result(self, package, success, error_msg):
+        """Show a result dialog after single package submit."""
+        if success:
+            self.status_label.set_text(_("Sent successfully!"))
+            dialog = Adw.MessageDialog(
+                transient_for=self,
+                heading="✅ " + _("Translation submitted"),
+                body=_("Package \"{pkg}\" was submitted successfully and is now pending review on DDTSS.").format(pkg=package),
+            )
+            dialog.add_response("ok", _("OK"))
+            dialog.set_default_response("ok")
+        else:
+            self.status_label.set_text(error_msg)
+            dialog = Adw.MessageDialog(
+                transient_for=self,
+                heading="❌ " + _("Submission failed"),
+                body=_("Package \"{pkg}\" could not be submitted.\n\n{err}").format(pkg=package, err=error_msg),
+            )
+            dialog.add_response("ok", _("OK"))
+            dialog.set_default_response("ok")
+        dialog.present()
 
     def _on_add_to_queue(self, *_args):
         """Add current translation to the send queue."""
@@ -1424,7 +1447,13 @@ class MainWindow(Adw.ApplicationWindow):
             sent=sent, errors=errors, total=total)
         self._batch_log(f"\n{summary}")
         _log_event(summary)
-        GLib.idle_add(self._batch_heading.set_text, _("Sending complete"))
+        if errors == 0:
+            heading = "✅ " + _("All {n} translations submitted").format(n=sent)
+        elif sent == 0:
+            heading = "❌ " + _("All {n} submissions failed").format(n=errors)
+        else:
+            heading = "⚠️ " + _("{sent} sent, {errors} failed").format(sent=sent, errors=errors)
+        GLib.idle_add(self._batch_heading.set_text, heading)
         GLib.idle_add(self._batch_current.set_text, summary)
         GLib.idle_add(self._batch_countdown.set_text, "")
         GLib.idle_add(self._batch_cancel_btn.set_sensitive, False)
