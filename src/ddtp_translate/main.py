@@ -17,6 +17,10 @@ from gi.repository import Adw, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 from . import __version__
 from .ddtp_api import DDTP_LANGUAGES, fetch_untranslated, fetch_ddtp_stats
 from .smtp_sender import load_settings, save_settings, send_translation
+from .ddtss_client import (
+    DDTSSClient, DDTSSError, DDTSSAuthError,
+    DDTSSLockedError, DDTSSValidationError,
+)
 
 # i18n setup
 LOCALE_DIR = None
@@ -184,6 +188,47 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         self.add(smtp_page)
 
+        # DDTSS page (web-based submission — recommended)
+        ddtss_page = Adw.PreferencesPage(title=_("DDTSS"), icon_name="web-browser-symbolic")
+
+        method_group = Adw.PreferencesGroup(
+            title=_("Submission Method"),
+            description=_("DDTSS (web) is recommended. SMTP (email) is legacy and may not work."),
+        )
+        self.method_row = Adw.ComboRow(title=_("Submit via"))
+        method_model = Gtk.StringList()
+        method_model.append("DDTSS (web)")
+        method_model.append("SMTP (email)")
+        self.method_row.set_model(method_model)
+        current_method = self.settings.get("submit_method", "ddtss")
+        self.method_row.set_selected(0 if current_method == "ddtss" else 1)
+        method_group.add(self.method_row)
+        ddtss_page.add(method_group)
+
+        ddtss_group = Adw.PreferencesGroup(
+            title=_("DDTSS Account"),
+            description=_("Create an account at https://ddtp.debian.org/ddtss/index.cgi/createlogin"),
+        )
+        self.ddtss_alias_row = Adw.EntryRow(title=_("Alias"))
+        self.ddtss_alias_row.set_text(self.settings.get("ddtss_alias", ""))
+        ddtss_group.add(self.ddtss_alias_row)
+
+        self.ddtss_pass_row = Adw.PasswordEntryRow(title=_("Password"))
+        self.ddtss_pass_row.set_text(self.settings.get("ddtss_password", ""))
+        ddtss_group.add(self.ddtss_pass_row)
+
+        # Test login button
+        ddtss_test_btn = Gtk.Button(label=_("Test Login"))
+        ddtss_test_btn.add_css_class("suggested-action")
+        ddtss_test_btn.add_css_class("pill")
+        ddtss_test_btn.set_margin_top(8)
+        ddtss_test_btn.set_margin_bottom(4)
+        ddtss_test_btn.connect("clicked", self._test_ddtss_login)
+        ddtss_group.add(ddtss_test_btn)
+
+        ddtss_page.add(ddtss_group)
+        self.add(ddtss_page)
+
         # Sending page
         send_page = Adw.PreferencesPage(title=_("Sending"), icon_name="preferences-system-time-symbolic")
         send_group = Adw.PreferencesGroup(
@@ -238,9 +283,35 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.port_row.set_text("465")
         self.tls_row.set_active(True)
 
+    def _test_ddtss_login(self, btn):
+        """Test DDTSS login credentials."""
+        alias = self.ddtss_alias_row.get_text().strip()
+        password = self.ddtss_pass_row.get_text().strip()
+        if not alias or not password:
+            btn.set_label(_("Enter alias and password first"))
+            GLib.timeout_add(2000, lambda: btn.set_label(_("Test Login")) or False)
+            return
+
+        def _do_test():
+            try:
+                client = DDTSSClient()
+                client.login(alias, password)
+                GLib.idle_add(lambda: btn.set_label("✅ " + _("Login successful!")) or False)
+            except DDTSSAuthError as e:
+                GLib.idle_add(lambda: btn.set_label(f"❌ {e}") or False)
+            except DDTSSError as e:
+                GLib.idle_add(lambda: btn.set_label(f"❌ {e}") or False)
+            GLib.timeout_add(3000, lambda: btn.set_label(_("Test Login")) or False)
+
+        import threading
+        threading.Thread(target=_do_test, daemon=True).start()
+
     def _on_close(self, *_args):
         self.settings.update(
             {
+                "submit_method": "ddtss" if self.method_row.get_selected() == 0 else "smtp",
+                "ddtss_alias": self.ddtss_alias_row.get_text(),
+                "ddtss_password": self.ddtss_pass_row.get_text(),
                 "smtp_host": self.host_row.get_text(),
                 "smtp_port": int(self.port_row.get_text() or 25),
                 "smtp_user": self.user_row.get_text(),
@@ -718,8 +789,13 @@ class MainWindow(Adw.ApplicationWindow):
             return
 
         settings = load_settings()
-        if not settings.get("smtp_host"):
+        method = settings.get("submit_method", "ddtss")
+
+        if method == "smtp" and not settings.get("smtp_host"):
             self.status_label.set_text(_("SMTP not configured — open Preferences first"))
+            return
+        if method == "ddtss" and not settings.get("ddtss_alias"):
+            self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
             return
 
         lines = text.split("\n", 1)
@@ -733,9 +809,24 @@ class MainWindow(Adw.ApplicationWindow):
 
         def do_send():
             try:
-                send_translation(pkg["package"], pkg["md5"], lang, short, long_text)
+                if method == "ddtss":
+                    client = DDTSSClient(lang=lang)
+                    if not client.is_logged_in():
+                        client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
+                    client.submit_translation(pkg["package"], short, long_text)
+                else:
+                    send_translation(pkg["package"], pkg["md5"], lang, short, long_text)
                 self._last_send_time = time.time()
                 GLib.idle_add(self.status_label.set_text, _("Sent successfully!"))
+            except DDTSSAuthError as exc:
+                GLib.idle_add(self.status_label.set_text,
+                    _("DDTSS login failed: {e}").format(e=str(exc)))
+            except DDTSSValidationError as exc:
+                GLib.idle_add(self.status_label.set_text,
+                    _("Validation error: {e}").format(e=str(exc)))
+            except DDTSSLockedError as exc:
+                GLib.idle_add(self.status_label.set_text,
+                    _("Package locked: {e}").format(e=str(exc)))
             except Exception as exc:
                 GLib.idle_add(self.status_label.set_text, _("Error: {e}").format(e=str(exc)))
             GLib.idle_add(self.submit_btn.set_sensitive, True)
@@ -1251,7 +1342,14 @@ class MainWindow(Adw.ApplicationWindow):
             GLib.idle_add(self._batch_progress.set_text, f"{i + 1}/{total}")
 
             try:
-                send_translation(item.package, item.md5, lang, item.short, item.long_text, settings)
+                method = settings.get("submit_method", "ddtss")
+                if method == "ddtss":
+                    client = DDTSSClient(lang=lang)
+                    if not client.is_logged_in():
+                        client.login(settings.get("ddtss_alias", ""), settings.get("ddtss_password", ""))
+                    client.submit_translation(item.package, item.short, item.long_text)
+                else:
+                    send_translation(item.package, item.md5, lang, item.short, item.long_text, settings)
                 item.status = QueueItem.STATUS_SENT
                 sent += 1
                 self._batch_log(f"✅ {item.package}")
