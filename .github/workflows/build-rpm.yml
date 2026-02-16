@@ -19,85 +19,93 @@ jobs:
 
       - name: Get version
         id: version
-        run: echo "version=$(grep -oP '__version__ = \"\K[^\"]+' src/ddtp_translate/__init__.py)" >> $GITHUB_OUTPUT
-
-      - name: Setup RPM build
-        run: |
-          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-          VERSION=${{ steps.version.outputs.version }}
-          mkdir -p ddtp-translate-$VERSION/src/ddtp_translate
-          mkdir -p ddtp-translate-$VERSION/data/icons
-          cp src/ddtp_translate/*.py ddtp-translate-$VERSION/src/ddtp_translate/
-          cp data/se.danielnylander.ddtp-translate.desktop ddtp-translate-$VERSION/data/
-          cp data/icons/se.danielnylander.ddtp-translate.svg ddtp-translate-$VERSION/data/icons/
-          mkdir -p ddtp-translate-$VERSION/data/man
-          cp data/man/ddtp-translate.1 ddtp-translate-$VERSION/data/man/
-
-          cp LICENSE ddtp-translate-$VERSION/
-          if [ -d locale ]; then
-            cp -r locale ddtp-translate-$VERSION/
-          fi
-          tar czf ~/rpmbuild/SOURCES/ddtp-translate-$VERSION.tar.gz ddtp-translate-$VERSION
-
-      - name: Create spec file
-        run: |
-          VERSION=${{ steps.version.outputs.version }}
-          cat > ~/rpmbuild/SPECS/ddtp-translate.spec << SPEC
-Name:           ddtp-translate
-Version:        $VERSION
-Release:        1
-Summary:        ddtp-translate
-License:        GPL-3.0-or-later
-URL:            https://github.com/yeager/ddtp-translate
-Source0:        %{name}-%{version}.tar.gz
-BuildArch:      noarch
-Requires:       python3 >= 3.9
-Requires:       python3-gobject
-Requires:       gtk4
-Requires:       libadwaita
-
-%description
-ddtp-translate application.
-
-%prep
-%setup -q
-
-%install
-mkdir -p %{buildroot}%{_datadir}/ddtp-translate
-cp src/ddtp_translate/*.py %{buildroot}%{_datadir}/ddtp-translate/
-mkdir -p %{buildroot}%{_bindir}
-cat > %{buildroot}%{_bindir}/ddtp-translate << 'WRAPPER'
-#!/bin/bash
-exec python3 %{_datadir}/ddtp-translate/main.py "\$@"
-WRAPPER
-chmod 755 %{buildroot}%{_bindir}/ddtp-translate
-install -Dm644 data/se.danielnylander.ddtp-translate.desktop %{buildroot}%{_datadir}/applications/se.danielnylander.ddtp-translate.desktop
-install -Dm644 data/icons/se.danielnylander.ddtp-translate.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/se.danielnylander.ddtp-translate.svg
-install -Dm644 data/man/ddtp-translate.1 %{buildroot}%{_mandir}/man1/ddtp-translate.1
-
-if [ -d locale ]; then
-  for mo in locale/*/LC_MESSAGES/*.mo; do
-    [ -f "\$mo" ] || continue
-    lang=\$(echo "\$mo" | cut -d/ -f2)
-    install -Dm644 "\$mo" "%{buildroot}%{_datadir}/locale/\$lang/LC_MESSAGES/ddtp-translate.mo"
-  done
-fi
-
-%files
-%license LICENSE
-%{_bindir}/ddtp-translate
-%{_datadir}/ddtp-translate/
-%{_datadir}/applications/se.danielnylander.ddtp-translate.desktop
-%{_datadir}/icons/hicolor/scalable/apps/se.danielnylander.ddtp-translate.svg
-%{_mandir}/man1/ddtp-translate.1*
-
-%changelog
-* Mon Feb 16 2026 Daniel Nylander <daniel@danielnylander.se> - $VERSION-1
-- RPM package
-SPEC
+        run: echo "version=$(grep -oP '__version__ = "\K[^"]+' src/ddtp_translate/__init__.py)" >> $GITHUB_OUTPUT
 
       - name: Build RPM
-        run: rpmbuild -ba ~/rpmbuild/SPECS/ddtp-translate.spec
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: python3 {0}
+        run: |
+          import os, subprocess, textwrap, datetime
+          version = os.environ["VERSION"]
+          pkg = f"ddtp-translate-{version}"
+          home = os.path.expanduser("~")
+
+          # Create tarball
+          for d in ["BUILD","RPMS","SOURCES","SPECS","SRPMS"]:
+              os.makedirs(f"{home}/rpmbuild/{d}", exist_ok=True)
+
+          os.makedirs(f"{pkg}/src/ddtp_translate", exist_ok=True)
+          os.makedirs(f"{pkg}/data/icons", exist_ok=True)
+          os.makedirs(f"{pkg}/data/man", exist_ok=True)
+          subprocess.run(f"cp src/ddtp_translate/*.py {pkg}/src/ddtp_translate/", shell=True, check=True)
+          subprocess.run(f"cp data/se.danielnylander.ddtp-translate.desktop {pkg}/data/", shell=True, check=True)
+          subprocess.run(f"cp data/icons/se.danielnylander.ddtp-translate.svg {pkg}/data/icons/", shell=True, check=True)
+          subprocess.run(f"cp data/man/ddtp-translate.1 {pkg}/data/man/", shell=True, check=True)
+          subprocess.run(f"cp LICENSE {pkg}/", shell=True, check=True)
+          subprocess.run(f"test -d locale && cp -r locale {pkg}/ || true", shell=True, check=True)
+          subprocess.run(f"tar czf {home}/rpmbuild/SOURCES/ddtp-translate-{version}.tar.gz {pkg}", shell=True, check=True)
+
+          # Write spec
+          today = datetime.datetime.now().strftime("%a %b %d %Y")
+          spec = textwrap.dedent(f"""\
+          Name:           ddtp-translate
+          Version:        {version}
+          Release:        1
+          Summary:        ddtp-translate
+          License:        GPL-3.0-or-later
+          URL:            https://github.com/yeager/ddtp-translate
+          Source0:        %{{name}}-%{{version}}.tar.gz
+          BuildArch:      noarch
+          Requires:       python3 >= 3.9
+          Requires:       python3-gobject
+          Requires:       gtk4
+          Requires:       libadwaita
+
+          %description
+          ddtp-translate application.
+
+          %prep
+          %setup -q
+
+          %install
+          mkdir -p %{{buildroot}}%{{_datadir}}/ddtp-translate
+          cp src/ddtp_translate/*.py %{{buildroot}}%{{_datadir}}/ddtp-translate/
+          mkdir -p %{{buildroot}}%{{_bindir}}
+          cat > %{{buildroot}}%{{_bindir}}/ddtp-translate << 'WRAPPER'
+          #!/bin/bash
+          exec python3 %{{_datadir}}/ddtp-translate/main.py "$@"
+          WRAPPER
+          chmod 755 %{{buildroot}}%{{_bindir}}/ddtp-translate
+          install -Dm644 data/se.danielnylander.ddtp-translate.desktop %{{buildroot}}%{{_datadir}}/applications/se.danielnylander.ddtp-translate.desktop
+          install -Dm644 data/icons/se.danielnylander.ddtp-translate.svg %{{buildroot}}%{{_datadir}}/icons/hicolor/scalable/apps/se.danielnylander.ddtp-translate.svg
+          install -Dm644 data/man/ddtp-translate.1 %{{buildroot}}%{{_mandir}}/man1/ddtp-translate.1
+
+          if [ -d locale ]; then
+            for mo in locale/*/LC_MESSAGES/*.mo; do
+              [ -f "$mo" ] || continue
+              lang=$(echo "$mo" | cut -d/ -f2)
+              install -Dm644 "$mo" "%{{buildroot}}%{{_datadir}}/locale/$lang/LC_MESSAGES/ddtp-translate.mo"
+            done
+          fi
+
+          %files
+          %license LICENSE
+          %{{_bindir}}/ddtp-translate
+          %{{_datadir}}/ddtp-translate/
+          %{{_datadir}}/applications/se.danielnylander.ddtp-translate.desktop
+          %{{_datadir}}/icons/hicolor/scalable/apps/se.danielnylander.ddtp-translate.svg
+          %{{_mandir}}/man1/ddtp-translate.1*
+
+          %changelog
+          * {today} Daniel Nylander <daniel@danielnylander.se> - {version}-1
+          - RPM package
+          """)
+          with open(f"{home}/rpmbuild/SPECS/ddtp-translate.spec", "w") as f:
+              f.write(spec)
+
+          # Build
+          subprocess.run(["rpmbuild", "-ba", f"{home}/rpmbuild/SPECS/ddtp-translate.spec"], check=True)
 
       - name: Upload RPM to release
         if: github.event_name == 'release'
