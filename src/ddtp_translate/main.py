@@ -116,6 +116,9 @@ def _setup_css():
     .queue-sent { background-color: alpha(@success_bg_color, 0.15); }
     .queue-error { background-color: alpha(@error_bg_color, 0.15); }
     .queue-count { font-weight: bold; font-size: 1.1em; }
+    .pkg-flag-submitted { color: #26a269; }
+    .pkg-flag-modified { color: #e5a50a; }
+    .pkg-flag-queued { color: @accent_color; }
     """
     provider = Gtk.CssProvider()
     provider.load_from_data(css)
@@ -357,6 +360,10 @@ class MainWindow(Adw.ApplicationWindow):
         self._queue = []  # list of QueueItem
         self._batch_running = False
         self._batch_cancel = False
+        self._submitted_packages = set()  # packages successfully sent (by name)
+        self._modified_packages = set()   # packages with unsaved translation edits
+
+        self.connect("close-request", self._on_close_request)
 
         _setup_css()
 
@@ -543,6 +550,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.trans_view.set_margin_end(8)
         self.trans_view.set_margin_top(4)
         self.trans_view.set_margin_bottom(4)
+        self.trans_view.get_buffer().connect("changed", self._on_trans_buffer_changed)
         right_scroll.set_child(self.trans_view)
         right_box.append(right_scroll)
         editor_paned.set_end_child(right_box)
@@ -702,12 +710,34 @@ class MainWindow(Adw.ApplicationWindow):
         self.packages = pkgs
         self._clear_list()
         for pkg in pkgs:
-            label = Gtk.Label(label=pkg["package"], xalign=0)
-            label.set_margin_start(8)
-            label.set_margin_end(8)
-            label.set_margin_top(4)
-            label.set_margin_bottom(4)
-            self.pkg_list.append(label)
+            row_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+            row_box.set_margin_start(8)
+            row_box.set_margin_end(8)
+            row_box.set_margin_top(4)
+            row_box.set_margin_bottom(4)
+
+            label = Gtk.Label(label=pkg["package"], xalign=0, hexpand=True)
+            label.set_ellipsize(Pango.EllipsizeMode.END)
+            row_box.append(label)
+
+            pkg_name = pkg["package"]
+            if pkg_name in self._submitted_packages:
+                icon = Gtk.Image.new_from_icon_name("emblem-ok-symbolic")
+                icon.set_tooltip_text(_("Submitted ✅"))
+                icon.add_css_class("pkg-flag-submitted")
+                row_box.append(icon)
+            elif any(q.package == pkg_name and q.status == QueueItem.STATUS_READY for q in self._queue):
+                icon = Gtk.Image.new_from_icon_name("mail-unread-symbolic")
+                icon.set_tooltip_text(_("In queue"))
+                icon.add_css_class("pkg-flag-queued")
+                row_box.append(icon)
+            elif pkg_name in self._modified_packages:
+                icon = Gtk.Image.new_from_icon_name("document-edit-symbolic")
+                icon.set_tooltip_text(_("Modified — not in queue"))
+                icon.add_css_class("pkg-flag-modified")
+                row_box.append(icon)
+
+            self.pkg_list.append(row_box)
         if update_stats:
             self.stats_label.set_text(_("{n} untranslated").format(n=len(pkgs)))
         self.status_label.set_text(_("Ready"))
@@ -740,6 +770,18 @@ class MainWindow(Adw.ApplicationWindow):
             box.add_controller(gesture)
             box.set_cursor(Gdk.Cursor.new_from_name("pointer"))
             self._heatmap_flow.append(box)
+
+    def _on_trans_buffer_changed(self, buf):
+        """Track that the current package's translation has been modified."""
+        if self.current_pkg:
+            pkg_name = self.current_pkg["package"]
+            if pkg_name not in self._submitted_packages:
+                self._modified_packages.add(pkg_name)
+
+    def _refresh_pkg_list_flags(self):
+        """Refresh the package list to update flag icons."""
+        if self.packages:
+            self._populate_list(self.packages, update_stats=False)
 
     def _select_pkg_by_index(self, idx):
         row = self.pkg_list.get_row_at_index(idx)
@@ -820,6 +862,9 @@ class MainWindow(Adw.ApplicationWindow):
                 else:
                     send_translation(pkg["package"], pkg["md5"], lang, short, long_text)
                 self._last_send_time = time.time()
+                self._submitted_packages.add(pkg["package"])
+                self._modified_packages.discard(pkg["package"])
+                GLib.idle_add(self._refresh_pkg_list_flags)
                 GLib.idle_add(self._show_submit_result, pkg["package"], True, "")
             except DDTSSAuthError as exc:
                 GLib.idle_add(self._show_submit_result, pkg["package"], False,
@@ -886,14 +931,18 @@ class MainWindow(Adw.ApplicationWindow):
                 item.status = QueueItem.STATUS_READY
                 item.error_msg = ""
                 _save_queue(self._queue)
+                self._modified_packages.discard(pkg["package"])
                 self._update_queue_badge()
+                self._refresh_pkg_list_flags()
                 self.status_label.set_text(_("Updated {pkg} in queue").format(pkg=pkg["package"]))
                 _log_event(f"Updated {pkg['package']} in queue")
                 return
 
         self._queue.append(QueueItem(pkg["package"], pkg["md5"], short, long_text))
         _save_queue(self._queue)
+        self._modified_packages.discard(pkg["package"])
         self._update_queue_badge()
+        self._refresh_pkg_list_flags()
         self.status_label.set_text(_("Added {pkg} to queue ({n} total)").format(
             pkg=pkg["package"], n=len(self._queue)))
         _log_event(f"Added {pkg['package']} to queue")
@@ -1221,8 +1270,8 @@ class MainWindow(Adw.ApplicationWindow):
         dialog = Adw.Window(
             transient_for=self,
             title=_("Review: {pkg}").format(pkg=data["package"]),
-            default_width=750,
-            default_height=650,
+            default_width=1100,
+            default_height=800,
             modal=True,
         )
 
@@ -1756,6 +1805,8 @@ class MainWindow(Adw.ApplicationWindow):
                     send_translation(item.package, item.md5, lang, item.short, item.long_text, settings)
                 item.status = QueueItem.STATUS_SENT
                 sent += 1
+                self._submitted_packages.add(item.package)
+                self._modified_packages.discard(item.package)
                 self._batch_log(f"✅ {item.package}")
             except Exception as exc:
                 item.status = QueueItem.STATUS_ERROR
@@ -1798,7 +1849,44 @@ class MainWindow(Adw.ApplicationWindow):
         GLib.idle_add(self._batch_cancel_btn.set_sensitive, False)
         GLib.idle_add(self._batch_close_btn.set_sensitive, True)
         GLib.idle_add(self._update_queue_badge)
+        GLib.idle_add(self._refresh_pkg_list_flags)
         GLib.idle_add(self.status_label.set_text, summary)
+
+    # --- Close confirmation ---
+
+    def _on_close_request(self, *_args):
+        """Show confirmation dialog if there are unsent items or modifications."""
+        ready_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_READY)
+        modified_count = len(self._modified_packages)
+
+        warnings = []
+        if ready_count > 0:
+            warnings.append(_("{n} translation(s) in queue not yet submitted").format(n=ready_count))
+        if modified_count > 0:
+            warnings.append(_("{n} translation(s) modified but not added to queue").format(n=modified_count))
+
+        if not warnings:
+            return False  # Allow close
+
+        dialog = Adw.MessageDialog(
+            transient_for=self,
+            heading=_("Quit DDTP Translate?"),
+            body=_("You have unsaved work:\n\n• {items}\n\nThis will be lost if you quit.").format(
+                items="\n• ".join(warnings)),
+        )
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("quit", _("Quit anyway"))
+        dialog.set_response_appearance("quit", Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_default_response("cancel")
+
+        def on_response(d, response):
+            d.close()
+            if response == "quit":
+                self.get_application().quit()
+
+        dialog.connect("response", on_response)
+        dialog.present()
+        return True  # Prevent close (dialog handles it)
 
     # --- PO Export/Import ---
 
