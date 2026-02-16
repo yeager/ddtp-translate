@@ -61,7 +61,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 DDTSS_BASE = "https://ddtp.debian.org/ddtss/index.cgi"
-USER_AGENT = "ddtp-translate/0.5.5 (GTK4; +https://github.com/yeager/ddtp-translate)"
+USER_AGENT = "ddtp-translate/0.6.0 (GTK4; +https://github.com/yeager/ddtp-translate)"
 
 # XDG config for cookie persistence
 _XDG = Path.home() / ".config" / "ddtp-translate"
@@ -390,23 +390,124 @@ class DDTSSClient:
 
         raise DDTSSError(f"Unexpected response after submit (HTTP {status})")
 
-    def submit_review(self, package, accept=True, comment=""):
-        """Accept or refuse a translation review.
+    def get_pending_reviews(self):
+        """Get list of packages pending review.
+
+        Returns:
+            list of dicts with keys: package, timestamp, note, owner
+        """
+        url = f"{DDTSS_BASE}/{self.lang}/"
+        status, body = self._request(url)
+
+        reviews = []
+        # Parse "Pending review" section
+        review_section = re.search(
+            r'Pending review.*?<ol>(.*?)</ol>', body, re.DOTALL
+        )
+        if review_section:
+            for m in re.finditer(
+                r'forreview/([\w.+-]+)\?(\d+)">([\w.+-]+)</a>\s*\(([^)]*)\)',
+                review_section.group(1)
+            ):
+                reviews.append({
+                    "package": m.group(1),
+                    "timestamp": m.group(2),
+                    "note": m.group(4),
+                })
+
+        # Also parse "Reviewed by you" section
+        reviewed_section = re.search(
+            r'Reviewed by you.*?<ol>(.*?)</ol>', body, re.DOTALL
+        )
+        if reviewed_section:
+            for m in re.finditer(
+                r'forreview/([\w.+-]+)\?(\d+)">([\w.+-]+)</a>\s*\(([^)]*)\)',
+                reviewed_section.group(1)
+            ):
+                reviews.append({
+                    "package": m.group(1),
+                    "timestamp": m.group(2),
+                    "note": m.group(4),
+                    "reviewed_by_you": True,
+                })
+
+        return reviews
+
+    def get_review_page(self, package):
+        """Get the review form for a specific package.
+
+        Returns:
+            dict with keys: package, short_orig, long_orig, short_trans, long_trans,
+                            owner, reviewers, log, diff_html, comment
+        """
+        url = f"{DDTSS_BASE}/{self.lang}/forreview/{urllib.parse.quote(package)}"
+        status, body = self._request(url)
+        self._check_error(body)
+
+        parser = _FormParser()
+        parser.feed(body)
+
+        result = {
+            "package": package,
+            "short_orig": "",
+            "long_orig": "",
+            "short_trans": parser.fields.get("short", ""),
+            "long_trans": parser.textareas.get("long", ""),
+            "comment": parser.textareas.get("comment", ""),
+            "owner": "",
+            "log": "",
+        }
+
+        # Extract original short description
+        orig_short_m = re.search(r'Untranslated:\s*<tt>(.*?)</tt>', body)
+        if orig_short_m:
+            from html import unescape
+            result["short_orig"] = unescape(orig_short_m.group(1).strip())
+
+        # Extract original long description from <pre> in untranslated
+        orig_long_m = re.search(r'Untranslated:.*?<pre>(.*?)</pre>', body, re.DOTALL)
+        if orig_long_m:
+            result["long_orig"] = orig_long_m.group(1).strip()
+
+        # Extract owner
+        owner_m = re.search(r'the owner is:\s*<b>(.*?)</b>', body)
+        if owner_m:
+            result["owner"] = owner_m.group(1)
+
+        # Extract log
+        log_m = re.search(r'Log:\s*<pre>(.*?)</pre>', body, re.DOTALL)
+        if log_m:
+            result["log"] = log_m.group(1).strip()
+
+        return result
+
+    def submit_review(self, package, action="accept", short="", long="", comment=""):
+        """Submit a review for a translation.
 
         Args:
             package: Package name.
-            accept: True to accept, False to refuse.
+            action: "accept" (accept as is), "changes" (accept with changes),
+                    or "comment" (change comment only).
+            short: Updated short description (only for action="changes").
+            long: Updated long description (only for action="changes").
             comment: Optional comment.
 
         Returns:
             True on success.
         """
         url = f"{DDTSS_BASE}/{self.lang}/forreview/{urllib.parse.quote(package)}"
-        data = {"comment": comment}
-        if accept:
-            data["accept"] = "Use the suggestion"
+        data = {"_charset_": "UTF-8", "comment": comment}
+
+        if action == "accept":
+            data["accept"] = "Accept as is"
+        elif action == "changes":
+            data["submit"] = "Accept with changes"
+            data["short"] = short
+            data["long"] = long
+        elif action == "comment":
+            data["nothing"] = "Change comment only"
         else:
-            data["refuse"] = "Refuse the suggestion"
+            raise ValueError(f"Unknown review action: {action}")
 
         status, body = self._request(url, data=data, multipart=True)
         self._check_error(body)

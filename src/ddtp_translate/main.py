@@ -415,6 +415,11 @@ class MainWindow(Adw.ApplicationWindow):
         self._show_queue_btn.connect("clicked", self._on_show_queue_dialog)
         header.pack_end(self._show_queue_btn)
 
+        # Review button
+        self._review_btn = Gtk.Button(icon_name="emblem-default-symbolic", tooltip_text=_("Review translations"))
+        self._review_btn.connect("clicked", self._on_open_review)
+        header.pack_end(self._review_btn)
+
         # Stats button
         stats_btn = Gtk.Button(icon_name="utilities-system-monitor-symbolic", tooltip_text=_("Statistics"))
         stats_btn.connect("clicked", self._on_show_stats)
@@ -439,6 +444,7 @@ class MainWindow(Adw.ApplicationWindow):
         menu = Gio.Menu()
         menu.append(_("Export as PO file…"), "app.export-po")
         menu.append(_("Import translated PO…"), "app.import-po")
+        menu.append(_("Review translations"), "app.review")
         menu.append(_("Show Queue"), "app.show-queue")
         menu.append(_("Clear queue"), "app.clear-queue")
         menu.append(_("Statistics"), "app.stats")
@@ -1072,6 +1078,339 @@ class MainWindow(Adw.ApplicationWindow):
         dialog.close()
         self._on_show_queue_dialog()
 
+    # --- Review dialog ---
+
+    def _on_open_review(self, *_args):
+        """Open the review dialog — list pending reviews from DDTSS."""
+        settings = load_settings()
+        if settings.get("submit_method", "ddtss") != "ddtss":
+            self.status_label.set_text(_("Review requires DDTSS (not SMTP)"))
+            return
+        if not settings.get("ddtss_alias"):
+            self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
+            return
+
+        self.status_label.set_text(_("Loading reviews…"))
+
+        def fetch():
+            try:
+                lang = self._current_lang()
+                client = DDTSSClient(lang=lang)
+                if not client.is_logged_in():
+                    client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
+                reviews = client.get_pending_reviews()
+                GLib.idle_add(self._show_review_list, reviews, lang, settings)
+            except Exception as exc:
+                GLib.idle_add(self.status_label.set_text, _("Error: {e}").format(e=str(exc)))
+
+        threading.Thread(target=fetch, daemon=True).start()
+
+    def _show_review_list(self, reviews, lang, settings):
+        """Show dialog with list of pending reviews."""
+        self.status_label.set_text("")
+
+        dialog = Adw.Window(
+            transient_for=self,
+            title=_("Review Translations"),
+            default_width=700,
+            default_height=550,
+            modal=True,
+        )
+
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        header = Adw.HeaderBar()
+        main_box.append(header)
+
+        if not reviews:
+            empty = Adw.StatusPage(
+                icon_name="emblem-default-symbolic",
+                title=_("No pending reviews"),
+                description=_("There are no translations waiting for review."),
+            )
+            main_box.append(empty)
+            dialog.set_content(main_box)
+            dialog.present()
+            return
+
+        # Split into pending and already reviewed
+        pending = [r for r in reviews if not r.get("reviewed_by_you")]
+        reviewed = [r for r in reviews if r.get("reviewed_by_you")]
+
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        list_box = Gtk.ListBox()
+        list_box.set_selection_mode(Gtk.SelectionMode.NONE)
+        list_box.add_css_class("boxed-list")
+        list_box.set_margin_start(12)
+        list_box.set_margin_end(12)
+        list_box.set_margin_top(8)
+        scroll.set_child(list_box)
+        main_box.append(scroll)
+
+        if pending:
+            header_row = Gtk.Label(label=_("Pending review ({n})").format(n=len(pending)),
+                                   xalign=0)
+            header_row.add_css_class("title-4")
+            header_row.set_margin_start(16)
+            header_row.set_margin_top(8)
+            list_box.append(header_row)
+
+            for r in pending:
+                row = Adw.ActionRow(
+                    title=r["package"],
+                    subtitle=r.get("note", ""),
+                    activatable=True,
+                )
+                row.add_suffix(Gtk.Image.new_from_icon_name("go-next-symbolic"))
+                row.connect("activated", lambda w, pkg=r["package"]: (
+                    dialog.close(), self._open_review_detail(pkg, lang, settings)))
+                list_box.append(row)
+
+        if reviewed:
+            header_row2 = Gtk.Label(label=_("Reviewed by you ({n})").format(n=len(reviewed)),
+                                    xalign=0)
+            header_row2.add_css_class("title-4")
+            header_row2.set_margin_start(16)
+            header_row2.set_margin_top(12)
+            list_box.append(header_row2)
+
+            for r in reviewed:
+                row = Adw.ActionRow(
+                    title=r["package"],
+                    subtitle=r.get("note", ""),
+                    activatable=True,
+                )
+                row.add_prefix(Gtk.Image.new_from_icon_name("emblem-ok-symbolic"))
+                row.add_suffix(Gtk.Image.new_from_icon_name("go-next-symbolic"))
+                row.connect("activated", lambda w, pkg=r["package"]: (
+                    dialog.close(), self._open_review_detail(pkg, lang, settings)))
+                list_box.append(row)
+
+        info = Gtk.Label(
+            label=_("{pending} pending, {reviewed} reviewed by you").format(
+                pending=len(pending), reviewed=len(reviewed)),
+            xalign=0,
+        )
+        info.add_css_class("dim-label")
+        info.set_margin_start(12)
+        info.set_margin_bottom(8)
+        main_box.append(info)
+
+        dialog.set_content(main_box)
+        dialog.present()
+
+    def _open_review_detail(self, package, lang, settings):
+        """Open the review detail view for a single package."""
+        self.status_label.set_text(_("Loading review for {pkg}…").format(pkg=package))
+
+        def fetch():
+            try:
+                client = DDTSSClient(lang=lang)
+                if not client.is_logged_in():
+                    client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
+                data = client.get_review_page(package)
+                GLib.idle_add(self._show_review_detail, data, lang, settings)
+            except Exception as exc:
+                GLib.idle_add(self.status_label.set_text, _("Error: {e}").format(e=str(exc)))
+
+        threading.Thread(target=fetch, daemon=True).start()
+
+    def _show_review_detail(self, data, lang, settings):
+        """Show the review detail dialog for a single package."""
+        self.status_label.set_text("")
+
+        dialog = Adw.Window(
+            transient_for=self,
+            title=_("Review: {pkg}").format(pkg=data["package"]),
+            default_width=750,
+            default_height=650,
+            modal=True,
+        )
+
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        header = Adw.HeaderBar()
+
+        # Back button to return to review list
+        back_btn = Gtk.Button(icon_name="go-previous-symbolic", tooltip_text=_("Back to list"))
+        back_btn.connect("clicked", lambda b: (dialog.close(), self._on_open_review()))
+        header.pack_start(back_btn)
+
+        main_box.append(header)
+
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        content.set_margin_start(16)
+        content.set_margin_end(16)
+        content.set_margin_top(8)
+        content.set_margin_bottom(8)
+        scroll.set_child(content)
+        main_box.append(scroll)
+
+        # Owner info
+        if data.get("owner"):
+            owner_label = Gtk.Label(
+                label=_("Owner: {owner}").format(owner=data["owner"]),
+                xalign=0,
+            )
+            owner_label.add_css_class("dim-label")
+            content.append(owner_label)
+
+        # --- Original short ---
+        orig_short_label = Gtk.Label(label=_("Original short description"), xalign=0)
+        orig_short_label.add_css_class("title-4")
+        content.append(orig_short_label)
+
+        orig_short = Gtk.Label(label=data["short_orig"], xalign=0, selectable=True)
+        orig_short.set_wrap(True)
+        orig_short.add_css_class("monospace")
+        content.append(orig_short)
+
+        # --- Translated short (editable) ---
+        trans_short_label = Gtk.Label(label=_("Translated short description"), xalign=0)
+        trans_short_label.add_css_class("title-4")
+        content.append(trans_short_label)
+
+        short_entry = Gtk.Entry()
+        short_entry.set_text(data["short_trans"])
+        content.append(short_entry)
+
+        # --- Original long ---
+        orig_long_label = Gtk.Label(label=_("Original long description"), xalign=0)
+        orig_long_label.add_css_class("title-4")
+        content.append(orig_long_label)
+
+        orig_long = Gtk.Label(label=data["long_orig"], xalign=0, selectable=True)
+        orig_long.set_wrap(True)
+        orig_long.add_css_class("monospace")
+        content.append(orig_long)
+
+        # --- Translated long (editable) ---
+        trans_long_label = Gtk.Label(label=_("Translated long description"), xalign=0)
+        trans_long_label.add_css_class("title-4")
+        content.append(trans_long_label)
+
+        long_buf = Gtk.TextBuffer()
+        long_buf.set_text(data["long_trans"])
+        long_view = Gtk.TextView(buffer=long_buf, editable=True, wrap_mode=Gtk.WrapMode.WORD)
+        long_view.add_css_class("monospace")
+        long_view.set_size_request(-1, 120)
+        long_frame = Gtk.Frame()
+        long_frame.set_child(long_view)
+        content.append(long_frame)
+
+        # --- Comment ---
+        comment_label = Gtk.Label(label=_("Comment (optional)"), xalign=0)
+        comment_label.add_css_class("title-4")
+        content.append(comment_label)
+
+        comment_buf = Gtk.TextBuffer()
+        comment_buf.set_text(data.get("comment", ""))
+        comment_view = Gtk.TextView(buffer=comment_buf, editable=True, wrap_mode=Gtk.WrapMode.WORD)
+        comment_view.set_size_request(-1, 60)
+        comment_frame = Gtk.Frame()
+        comment_frame.set_child(comment_view)
+        content.append(comment_frame)
+
+        # --- Log ---
+        if data.get("log"):
+            log_label = Gtk.Label(label=_("Log"), xalign=0)
+            log_label.add_css_class("title-4")
+            content.append(log_label)
+
+            log_text = Gtk.Label(label=data["log"], xalign=0, selectable=True)
+            log_text.add_css_class("monospace")
+            log_text.add_css_class("dim-label")
+            content.append(log_text)
+
+        # --- Action buttons ---
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_box.set_halign(Gtk.Align.END)
+        btn_box.set_margin_top(12)
+        btn_box.set_margin_bottom(12)
+
+        def get_comment():
+            return comment_buf.get_text(comment_buf.get_start_iter(), comment_buf.get_end_iter(), False).strip()
+
+        def get_short():
+            return short_entry.get_text().strip()
+
+        def get_long():
+            return long_buf.get_text(long_buf.get_start_iter(), long_buf.get_end_iter(), False)
+
+        def do_review(action):
+            for btn in (accept_btn, changes_btn, comment_btn):
+                btn.set_sensitive(False)
+            self.status_label.set_text(_("Submitting review…"))
+
+            def submit():
+                try:
+                    client = DDTSSClient(lang=lang)
+                    if not client.is_logged_in():
+                        client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
+                    client.submit_review(
+                        data["package"],
+                        action=action,
+                        short=get_short(),
+                        long=get_long(),
+                        comment=get_comment(),
+                    )
+                    GLib.idle_add(self._show_review_result, data["package"], action, True, "")
+                    GLib.idle_add(dialog.close)
+                except Exception as exc:
+                    GLib.idle_add(self._show_review_result, data["package"], action, False, str(exc))
+                    for btn in (accept_btn, changes_btn, comment_btn):
+                        GLib.idle_add(btn.set_sensitive, True)
+
+            threading.Thread(target=submit, daemon=True).start()
+
+        comment_btn = Gtk.Button(label=_("Comment only"))
+        comment_btn.set_tooltip_text(_("Save comment without accepting"))
+        comment_btn.connect("clicked", lambda b: do_review("comment"))
+        btn_box.append(comment_btn)
+
+        changes_btn = Gtk.Button(label=_("Accept with changes"))
+        changes_btn.add_css_class("suggested-action")
+        changes_btn.set_tooltip_text(_("Accept translation with your modifications — restarts review"))
+        changes_btn.connect("clicked", lambda b: do_review("changes"))
+        btn_box.append(changes_btn)
+
+        accept_btn = Gtk.Button(label="✅ " + _("Accept as is"))
+        accept_btn.add_css_class("suggested-action")
+        accept_btn.set_tooltip_text(_("Accept translation without changes"))
+        accept_btn.connect("clicked", lambda b: do_review("accept"))
+        btn_box.append(accept_btn)
+
+        content.append(btn_box)
+
+        dialog.set_content(main_box)
+        dialog.present()
+
+    def _show_review_result(self, package, action, success, error_msg):
+        """Show result dialog after review action."""
+        if success:
+            if action == "accept":
+                msg = _("Translation for \"{pkg}\" accepted.")
+            elif action == "changes":
+                msg = _("Translation for \"{pkg}\" accepted with changes (review restarted).")
+            else:
+                msg = _("Comment saved for \"{pkg}\".")
+            self.status_label.set_text("✅ " + msg.format(pkg=package))
+            dialog = Adw.MessageDialog(
+                transient_for=self,
+                heading="✅ " + _("Review submitted"),
+                body=msg.format(pkg=package),
+            )
+        else:
+            self.status_label.set_text("❌ " + error_msg)
+            dialog = Adw.MessageDialog(
+                transient_for=self,
+                heading="❌ " + _("Review failed"),
+                body=_("Could not submit review for \"{pkg}\".\n\n{err}").format(
+                    pkg=package, err=error_msg),
+            )
+        dialog.add_response("ok", _("OK"))
+        dialog.set_default_response("ok")
+        dialog.present()
+
     # --- Statistics dialog ---
 
     def _on_show_stats(self, *_args):
@@ -1669,6 +2008,7 @@ class DDTPTranslateApp(Adw.Application):
         self.create_action("clear-queue", self._on_clear_queue_action)
         self.create_action("show-queue", self._on_show_queue_action)
         self.create_action("stats", self._on_stats_action)
+        self.create_action("review", self._on_review_action)
 
     def do_activate(self):
         win = self.props.active_window
@@ -1735,6 +2075,11 @@ class DDTPTranslateApp(Adw.Application):
         win = self.props.active_window
         if win:
             win._on_show_queue_dialog()
+
+    def _on_review_action(self, *_args):
+        win = self.props.active_window
+        if win:
+            win._on_open_review()
 
     def _on_stats_action(self, *_args):
         win = self.props.active_window
