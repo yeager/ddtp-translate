@@ -75,13 +75,6 @@ msgstr "BESKRIVNING"
 
 #. type: Plain text
 #: data/man/ddtp-translate.1:8
-#, fuzzy
-#| msgid ""
-#| "B<ddtp-translate> is a GTK4/Adwaita application for translating Debian "
-#| "package descriptions via DDTP. It provides a side-by-side editor with "
-#| "original English descriptions and translation area, direct DDTP "
-#| "submission via email, configurable SMTP settings, local caching, search "
-#| "and filter, and statistics per language."
 msgid ""
 "B<ddtp-translate> is a GTK4/Adwaita application for translating Debian "
 "package descriptions via the Debian Description Translation Project (DDTP). "
@@ -89,12 +82,6 @@ msgid ""
 "showing original English package descriptions alongside a translation area "
 "for easy comparison and editing."
 msgstr ""
-"B<ddtp-translate> är ett GTK4/Adwaita-program för översättning av Debian-"
-"paketbeskrivningar via DDTP. Det har en redigerare där "
-"originalbeskrivningarna på engelska visas sida vid sida med "
-"översättningsområdet, direkt DDTP-inlämning via e-post, konfigurerbara SMTP-"
-"inställningar, lokal caching, sök- och filterfunktioner samt statistik per "
-"språk."
 
 #. type: Plain text
 #: data/man/ddtp-translate.1:10
