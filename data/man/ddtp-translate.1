@@ -4,7 +4,11 @@ ddtp-translate - Translate Debian package descriptions via DDTP
 .SH SYNOPSIS
 .B ddtp-translate
 .SH DESCRIPTION
-\fBddtp-translate\fR is a GTK4/Adwaita application for translating Debian package descriptions via DDTP. It provides a side-by-side editor with original English descriptions and translation area, direct DDTP submission via email, configurable SMTP settings, local caching, search and filter, and statistics per language.
+\fBddtp-translate\fR is a GTK4/Adwaita application for translating Debian package descriptions via the Debian Description Translation Project (DDTP). The application provides a sophisticated side-by-side editor interface showing original English package descriptions alongside a translation area for easy comparison and editing.
+
+The application integrates with DDTP email submission workflows, allowing direct submission of completed translations. It features configurable SMTP settings for email delivery and uses the system keyring for secure password storage. Integration with l10n-lint provides quality checking of translations before submission.
+
+Version 0.4.0 introduces enhanced features including statistics fetched from ddtp.debian.org, save and load functionality for translation queues, a lint button for immediate translation validation, and comprehensive event logging. The queue management system helps translators organize their work efficiently, while detailed statistics provide insights into translation progress and coverage across different package categories.
 .SH OPTIONS
 .TP
 .B \-\-help

@@ -1,0 +1,120 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tools
+        run: |
+          sudo apt-get install -y gettext
+          curl -o- https://raw.githubusercontent.com/transifex/cli/master/install.sh | bash
+          sudo mv tx /usr/local/bin/
+
+      - name: Pull translations
+        env:
+          TX_TOKEN: ${{ secrets.TX_TOKEN }}
+        run: |
+          tx pull -a --force --minimum-perc 10
+          ls -la po/*.po 2>/dev/null || echo "No translations yet"
+
+      - name: Compile translations
+        run: |
+          for po in po/*.po; do
+            [ -f "$po" ] || continue
+            lang=$(basename "$po" .po)
+            mkdir -p locale/$lang/LC_MESSAGES
+            msgfmt -o locale/$lang/LC_MESSAGES/ddtp-translate.mo "$po"
+          done
+
+      - name: Build man page translations
+        run: |
+          if [ -f po4a.cfg ]; then
+            sudo apt-get install -y po4a
+            po4a po4a.cfg || true
+          fi
+
+      - name: Build .deb
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          PKG=$(mktemp -d)
+          mkdir -p $PKG/usr/lib/python3/dist-packages/ddtp_translate
+          mkdir -p $PKG/usr/bin
+          mkdir -p $PKG/usr/share/applications
+          mkdir -p $PKG/usr/share/man/man1
+          mkdir -p $PKG/DEBIAN
+
+          cp src/ddtp_translate/*.py $PKG/usr/lib/python3/dist-packages/ddtp_translate/
+
+          for mo in locale/*/LC_MESSAGES/ddtp-translate.mo; do
+            [ -f "$mo" ] || continue
+            lang=$(echo "$mo" | cut -d/ -f2)
+            mkdir -p $PKG/usr/share/locale/$lang/LC_MESSAGES
+            cp "$mo" $PKG/usr/share/locale/$lang/LC_MESSAGES/
+          done
+
+          desktop=$(find data/ -name "*.desktop" 2>/dev/null | head -1)
+          [ -n "$desktop" ] && cp "$desktop" $PKG/usr/share/applications/
+
+          icon=$(find data/icons/ -name "*.svg" 2>/dev/null | head -1)
+          if [ -n "$icon" ]; then
+            mkdir -p $PKG/usr/share/icons/hicolor/scalable/apps
+            cp "$icon" $PKG/usr/share/icons/hicolor/scalable/apps/
+          fi
+
+          # Man page
+          if [ -f data/man/ddtp-translate.1 ]; then
+            cp data/man/ddtp-translate.1 $PKG/usr/share/man/man1/
+          fi
+          # Translated man pages
+          for manpo in man/*/ddtp-translate.1; do
+            [ -f "$manpo" ] || continue
+            lang=$(echo "$manpo" | cut -d/ -f2)
+            mkdir -p $PKG/usr/share/man/$lang/man1
+            cp "$manpo" $PKG/usr/share/man/$lang/man1/
+          done
+
+          printf '#!/usr/bin/env python3\nfrom ddtp_translate.main import main\nmain()\n' > $PKG/usr/bin/ddtp-translate
+          chmod +x $PKG/usr/bin/ddtp-translate
+
+          cat > $PKG/DEBIAN/control << EOF
+          Package: ddtp-translate
+          Version: ${VERSION}-1
+          Section: devel
+          Priority: optional
+          Architecture: all
+          Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-4.0, gir1.2-adw-1
+          Maintainer: Daniel Nylander <daniel@danielnylander.se>
+          Homepage: https://github.com/yeager/ddtp-translate
+          Description: Translate Debian package descriptions via DDTP
+           A GTK4/Adwaita application for translating Debian package
+           descriptions via the Debian Description Translation Project.
+          EOF
+          # Remove leading whitespace from control file
+          sed -i 's/^          //' $PKG/DEBIAN/control
+
+          dpkg-deb --root-owner-group --build $PKG ddtp-translate_${VERSION}-1_all.deb
+
+      - name: Create release and upload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          gh release create $GITHUB_REF_NAME ddtp-translate_${VERSION}-1_all.deb \
+            --title "v${VERSION}" \
+            --notes "Release v${VERSION}" \
+            --repo yeager/ddtp-translate || \
+          gh release upload $GITHUB_REF_NAME ddtp-translate_${VERSION}-1_all.deb \
+            --clobber --repo yeager/ddtp-translate
