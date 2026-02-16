@@ -101,9 +101,6 @@ def _load_queue():
             item = QueueItem(d["package"], d["md5"], d["short"], d.get("long_text", ""))
             item.status = d.get("status", QueueItem.STATUS_READY)
             item.error_msg = d.get("error_msg", "")
-            # Sent items without errors are removed on load
-            if item.status == QueueItem.STATUS_SENT:
-                continue
             items.append(item)
         return items
     except (OSError, json.JSONDecodeError, KeyError):
@@ -872,6 +869,12 @@ class MainWindow(Adw.ApplicationWindow):
             pkg=pkg["package"], n=len(self._queue)))
         _log_event(f"Added {pkg['package']} to queue")
 
+    def _clear_sent(self, *_args):
+        """Remove all sent items from the queue."""
+        self._queue = [q for q in self._queue if q.status != QueueItem.STATUS_SENT]
+        _save_queue(self._queue)
+        self._update_queue_badge()
+
     def _on_sort_queue(self, *_args):
         self._queue.sort(key=lambda q: q.package.lower())
         _save_queue(self._queue)
@@ -886,12 +889,17 @@ class MainWindow(Adw.ApplicationWindow):
         """Update the queue badge in the header bar."""
         ready_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_READY)
         error_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_ERROR)
-        total = ready_count + error_count
+        sent_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_SENT)
+        total = ready_count + error_count + sent_count
         if total > 0:
-            badge = f"📬 {ready_count}"
+            parts = []
+            if ready_count:
+                parts.append(f"📬 {ready_count}")
+            if sent_count:
+                parts.append(f"✅ {sent_count}")
             if error_count:
-                badge += f" ⚠ {error_count}"
-            self._queue_label.set_text(badge)
+                parts.append(f"⚠ {error_count}")
+            self._queue_label.set_text(" ".join(parts) if parts else f"📬 0")
             self._queue_label.set_visible(True)
         else:
             self._queue_label.set_visible(False)
@@ -937,14 +945,26 @@ class MainWindow(Adw.ApplicationWindow):
         # Summary + buttons
         ready_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_READY)
         error_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_ERROR)
+        sent_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_SENT)
 
         settings = load_settings()
-        delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
-        eta = self._format_duration(ready_count * delay) if ready_count > 0 else _("N/A")
+        method = settings.get("submit_method", "ddtss")
+        if method == "ddtss":
+            eta = ""
+        else:
+            delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
+            eta = _(" — ETA: {eta}").format(eta=self._format_duration(ready_count * delay)) if ready_count > 0 else ""
+
+        parts = []
+        if ready_count:
+            parts.append(_("{n} ready").format(n=ready_count))
+        if sent_count:
+            parts.append(_("{n} sent ✅").format(n=sent_count))
+        if error_count:
+            parts.append(_("{n} errors").format(n=error_count))
 
         info_label = Gtk.Label(
-            label=_("{ready} ready, {errors} errors — ETA: {eta}").format(
-                ready=ready_count, errors=error_count, eta=eta),
+            label=", ".join(parts) + eta if parts else _("Queue is empty"),
             xalign=0,
         )
         info_label.add_css_class("dim-label")
@@ -960,7 +980,12 @@ class MainWindow(Adw.ApplicationWindow):
         btn_box.set_margin_top(8)
         btn_box.set_margin_bottom(12)
 
-        clear_btn = Gtk.Button(label=_("Clear queue"))
+        if sent_count > 0:
+            clear_sent_btn = Gtk.Button(label=_("Clear sent ✅"))
+            clear_sent_btn.connect("clicked", lambda b: (self._clear_sent(), dialog.close()))
+            btn_box.append(clear_sent_btn)
+
+        clear_btn = Gtk.Button(label=_("Clear all"))
         clear_btn.add_css_class("destructive-action")
         clear_btn.connect("clicked", lambda b: (self._clear_queue(), dialog.close()))
         btn_box.append(clear_btn)
@@ -1196,36 +1221,53 @@ class MainWindow(Adw.ApplicationWindow):
             return
 
         settings = load_settings()
-        if not settings.get("smtp_host"):
-            self.status_label.set_text(_("SMTP not configured — open Preferences first"))
-            return
-
-        delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
+        method = settings.get("submit_method", "ddtss")
         total = len(ready)
-        est_time = self._format_duration(total * delay)
 
-        dialog = Adw.MessageDialog(
-            transient_for=self,
-            heading=_("Send {n} translations to DDTP?").format(n=total),
-            body=_(
-                "You are about to send {n} translation(s) to the Debian Description "
-                "Translation Project (DDTP) via email.\n\n"
-                "⚠️ Important information:\n\n"
-                "• Each translation is sent as a separate email to pdesc@ddtp.debian.org\n"
-                "• A delay of {delay} seconds is enforced between each email "
-                "to prevent overloading the DDTP server\n"
-                "• The DDTP server is run by volunteers — please be considerate\n"
-                "• Estimated time: {time}\n"
-                "• You can cancel the process at any time\n"
-                "• Successfully sent translations cannot be recalled\n"
-                "• Any SMTP errors will be shown per package\n\n"
-                "The delay can be adjusted in Preferences → Sending.\n"
-                "Make sure your SMTP settings and email address are correct."
-            ).format(n=total, delay=delay, time=est_time),
-        )
+        if method == "ddtss":
+            if not settings.get("ddtss_alias"):
+                self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
+                return
+            dialog = Adw.MessageDialog(
+                transient_for=self,
+                heading=_("Submit {n} translations via DDTSS?").format(n=total),
+                body=_(
+                    "You are about to submit {n} translation(s) to the DDTSS web interface.\n\n"
+                    "• Translations are submitted directly via HTTP — no delay needed\n"
+                    "• Successfully submitted packages are marked with ✅\n"
+                    "• You can cancel the process at any time\n"
+                    "• Any errors will be shown per package"
+                ).format(n=total),
+            )
+        else:
+            if not settings.get("smtp_host"):
+                self.status_label.set_text(_("SMTP not configured — open Preferences first"))
+                return
+            delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
+            est_time = self._format_duration(total * delay)
+            dialog = Adw.MessageDialog(
+                transient_for=self,
+                heading=_("Send {n} translations to DDTP?").format(n=total),
+                body=_(
+                    "You are about to send {n} translation(s) to the Debian Description "
+                    "Translation Project (DDTP) via email.\n\n"
+                    "⚠️ Important information:\n\n"
+                    "• Each translation is sent as a separate email to pdesc@ddtp.debian.org\n"
+                    "• A delay of {delay} seconds is enforced between each email "
+                    "to prevent overloading the DDTP server\n"
+                    "• The DDTP server is run by volunteers — please be considerate\n"
+                    "• Estimated time: {time}\n"
+                    "• You can cancel the process at any time\n"
+                    "• Successfully sent translations cannot be recalled\n"
+                    "• Any SMTP errors will be shown per package\n\n"
+                    "The delay can be adjusted in Preferences → Sending.\n"
+                    "Make sure your SMTP settings and email address are correct."
+                ).format(n=total, delay=delay, time=est_time),
+            )
+
         dialog.add_response("cancel", _("Cancel"))
-        dialog.add_response("send", _("I understand — Send All"))
-        dialog.set_response_appearance("send", Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.add_response("send", _("Submit All") if method == "ddtss" else _("I understand — Send All"))
+        dialog.set_response_appearance("send", Adw.ResponseAppearance.SUGGESTED if method == "ddtss" else Adw.ResponseAppearance.DESTRUCTIVE)
         dialog.set_default_response("cancel")
 
         def on_response(d, response):
@@ -1364,8 +1406,8 @@ class MainWindow(Adw.ApplicationWindow):
             GLib.idle_add(self._update_queue_badge)
             GLib.idle_add(self._batch_progress.set_fraction, (i + 1) / total)
 
-            # Rate limit delay (not after last or if cancelled)
-            if i < total - 1 and not self._batch_cancel and delay > 0:
+            # Rate limit delay for SMTP only (not needed for DDTSS HTTP)
+            if method != "ddtss" and i < total - 1 and not self._batch_cancel and delay > 0:
                 for sec in range(int(delay), 0, -1):
                     if self._batch_cancel:
                         break
@@ -1374,8 +1416,7 @@ class MainWindow(Adw.ApplicationWindow):
                     time.sleep(1)
                 GLib.idle_add(self._batch_countdown.set_text, "")
 
-        # Done — remove successfully sent items, keep errors
-        self._queue = [q for q in self._queue if q.status != QueueItem.STATUS_SENT]
+        # Keep sent items in queue (shown with green checkmark) — don't re-send them
         _save_queue(self._queue)
 
         self._batch_running = False

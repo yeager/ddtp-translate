@@ -61,7 +61,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 DDTSS_BASE = "https://ddtp.debian.org/ddtss/index.cgi"
-USER_AGENT = "ddtp-translate/0.4 (GTK4; +https://github.com/yeager/ddtp-translate)"
+USER_AGENT = "ddtp-translate/0.5.4 (GTK4; +https://github.com/yeager/ddtp-translate)"
 
 # XDG config for cookie persistence
 _XDG = Path.home() / ".config" / "ddtp-translate"
