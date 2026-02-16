@@ -9,7 +9,7 @@ Authentication:
     Cookie-based. Login sets a cookie 'id' valid for 70 days.
 
 Endpoints used:
-    POST /<lang>/login       — authenticate (params: alias, password, submit=1)
+    POST /login              — authenticate (params: alias, password, submit=Submit)
     GET  /<lang>/fetch       — fetch a package to translate (param: package)
     GET  /<lang>/translate/<pkg> — get translation form for a package
     POST /<lang>/translate/<pkg> — submit translation (params: short, long, submit=1)
@@ -215,18 +215,30 @@ class DDTSSClient:
         Returns:
             True on success.
         """
-        url = f"{DDTSS_BASE}/{self.lang}/login"
+        url = f"{DDTSS_BASE}/login"
         data = {
             "alias": alias,
             "password": password,
-            "submit": "Login",
+            "submit": "Submit",
         }
         status, body = self._request(url, data=data)
         self._check_error(body)
 
-        if "Login successful" in body:
+        # Successful login redirects to main page or shows logged-in status
+        if any(phrase in body for phrase in (
+            "Logged in as",
+            "logged in",
+            "Pending translation",
+            "Pending review",
+        )):
             self._save_cookies()
             return True
+
+        # Check if we got a session cookie (redirect may have happened)
+        for cookie in self._cookie_jar:
+            if cookie.name == "id" and "ddtp.debian.org" in (cookie.domain or ""):
+                self._save_cookies()
+                return True
 
         raise DDTSSAuthError("Login failed (unexpected response)")
 
