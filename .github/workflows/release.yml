@@ -46,6 +46,10 @@ jobs:
             po4a po4a.cfg || true
           fi
 
+      - name: Generate translated .desktop file
+        run: |
+          python3 desktop-merge.py data/se.danielnylander.ddtp-translate.desktop.in po/ data/se.danielnylander.ddtp-translate.desktop
+
       - name: Build .deb
         run: |
           VERSION=${GITHUB_REF_NAME#v}

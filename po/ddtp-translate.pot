@@ -810,3 +810,11 @@ msgstr ""
 #: src/ddtp_translate/main.py:2106
 msgid "Translate Debian package descriptions via DDTP"
 msgstr ""
+
+#: ddtp-translate/data/se.danielnylander.ddtp-translate.desktop.in
+msgid "Translation Tool"
+msgstr ""
+
+#: ddtp-translate/data/se.danielnylander.ddtp-translate.desktop.in
+msgid "debian;translation;ddtp;localization;l10n;"
+msgstr ""
