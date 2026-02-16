@@ -22,8 +22,25 @@ def _settings_path():
     return _config_dir() / "settings.json"
 
 
+_KEYRING_SERVICE = "ddtp-translate"
+_KEYRING_KEY = "smtp_password"
+
+
+def _get_keyring():
+    """Try to import keyring, return None if unavailable."""
+    try:
+        import keyring
+        return keyring
+    except ImportError:
+        return None
+
+
 def load_settings():
-    """Load SMTP settings from config file."""
+    """Load SMTP settings from config file.
+
+    Password is loaded from system keyring if available, with fallback
+    to the config file for backwards compatibility.
+    """
     path = _settings_path()
     defaults = {
         "smtp_host": DEFAULT_SMTP_HOST,
@@ -42,14 +59,46 @@ def load_settings():
             defaults.update(saved)
         except (json.JSONDecodeError, OSError):
             pass
+
+    # Try to load password from keyring
+    kr = _get_keyring()
+    if kr:
+        try:
+            pw = kr.get_password(_KEYRING_SERVICE, _KEYRING_KEY)
+            if pw is not None:
+                defaults["smtp_password"] = pw
+        except Exception:
+            pass
+
     return defaults
 
 
 def save_settings(settings):
-    """Save SMTP settings to config file."""
+    """Save SMTP settings to config file.
+
+    Password is stored in the system keyring if available; otherwise
+    it falls back to the config file.
+    """
     path = _settings_path()
+
+    # Try to store password in keyring
+    password = settings.get("smtp_password", "")
+    kr = _get_keyring()
+    stored_in_keyring = False
+    if kr and password:
+        try:
+            kr.set_password(_KEYRING_SERVICE, _KEYRING_KEY, password)
+            stored_in_keyring = True
+        except Exception:
+            pass
+
+    # Save to file — omit password if stored in keyring
+    to_save = dict(settings)
+    if stored_in_keyring:
+        to_save.pop("smtp_password", None)
+
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(settings, f, indent=2, ensure_ascii=False)
+        json.dump(to_save, f, indent=2, ensure_ascii=False)
 
 
 def build_translation_email(package_name, md5_hash, lang, translated_short, translated_long, settings):

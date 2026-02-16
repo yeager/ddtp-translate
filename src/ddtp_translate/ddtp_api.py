@@ -12,7 +12,7 @@ DDTP_BASE = "https://ddtp.debian.org/ddt.cgi"
 # Fallback: fetch from Debian mirror i18n Translation files
 MIRROR_BASE = "https://deb.debian.org/debian"
 DISTS = ["sid", "trixie", "bookworm"]
-CACHE_TTL = 3600  # 1 hour
+CACHE_TTL = 86400  # 24 hours
 
 # All DDTP-supported language codes
 DDTP_LANGUAGES = [
@@ -247,7 +247,57 @@ def fetch_untranslated(lang, force_refresh=False):
     )
 
 
-def get_statistics(lang):
-    """Return (untranslated_count,) for a language."""
-    pkgs = fetch_untranslated(lang)
-    return len(pkgs)
+def fetch_ddtp_stats():
+    """Fetch translation statistics from ddtp.debian.org main page.
+
+    Returns dict mapping lang_code -> {
+        'active_translations': int,
+        'previously_translated': int,
+        'total_translations': int,
+    }
+    Also returns total_packages and active_packages as top-level keys.
+    """
+    cache = _cache_dir() / "ddtp_stats.json"
+    if _is_cache_valid(cache):
+        with open(cache, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    url = "https://ddtp.debian.org/"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "ddtp-translate/0.1"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            text = resp.read().decode("utf-8", errors="replace")
+    except Exception as exc:
+        # Try stale cache
+        if cache.exists():
+            with open(cache, "r", encoding="utf-8") as f:
+                return json.load(f)
+        raise RuntimeError(f"Could not fetch DDTP statistics: {exc}")
+
+    stats = {"languages": {}, "total_packages": 0, "active_packages": 0}
+
+    # Parse total/active packages
+    m = re.search(r"(\d+) package descriptions;", text)
+    if m:
+        stats["total_packages"] = int(m.group(1))
+    m = re.search(r"(\d+) package descriptions are active;", text)
+    if m:
+        stats["active_packages"] = int(m.group(1))
+
+    # Parse per-language stats
+    # Pattern: lang XX has N (<a ...>M</a>) active translations from T translations;
+    for m in re.finditer(
+        r'lang (\S+) has (\d+) \(<a[^>]*>(\d+)</a>\) active translations from (\d+) translations;',
+        text,
+    ):
+        lang_code = m.group(1)
+        stats["languages"][lang_code] = {
+            "active_translations": int(m.group(2)),
+            "previously_translated": int(m.group(3)),
+            "total_translations": int(m.group(4)),
+        }
+
+    with open(cache, "w", encoding="utf-8") as f:
+        json.dump(stats, f, ensure_ascii=False, indent=2)
+
+    return stats

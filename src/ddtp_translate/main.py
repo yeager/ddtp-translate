@@ -15,7 +15,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 
 from . import __version__
-from .ddtp_api import DDTP_LANGUAGES, fetch_untranslated
+from .ddtp_api import DDTP_LANGUAGES, fetch_untranslated, fetch_ddtp_stats
 from .smtp_sender import load_settings, save_settings, send_translation
 
 # i18n setup
@@ -37,6 +37,73 @@ APP_ID = "se.danielnylander.ddtp-translate"
 
 # Default email delay between submissions (seconds)
 DEFAULT_SEND_DELAY = 30
+
+# Queue persistence path
+def _data_dir():
+    xdg = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
+    d = os.path.join(xdg, "ddtp-translate")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+def _queue_path():
+    return os.path.join(_data_dir(), "queue.json")
+
+def _log_path():
+    return os.path.join(_data_dir(), "events.log")
+
+def _log_event(message):
+    """Log an event if logging is enabled."""
+    settings = load_settings()
+    if not settings.get("enable_logging", False):
+        return
+    import datetime
+    try:
+        with open(_log_path(), "a", encoding="utf-8") as f:
+            ts = datetime.datetime.now().isoformat(timespec="seconds")
+            f.write(f"[{ts}] {message}\n")
+    except OSError:
+        pass
+
+def _save_queue(queue):
+    """Persist queue to disk."""
+    import json
+    data = []
+    for item in queue:
+        data.append({
+            "package": item.package,
+            "md5": item.md5,
+            "short": item.short,
+            "long_text": item.long_text,
+            "status": item.status,
+            "error_msg": item.error_msg,
+        })
+    try:
+        with open(_queue_path(), "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except OSError:
+        pass
+
+def _load_queue():
+    """Load queue from disk."""
+    import json
+    path = _queue_path()
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        items = []
+        for d in data:
+            item = QueueItem(d["package"], d["md5"], d["short"], d.get("long_text", ""))
+            item.status = d.get("status", QueueItem.STATUS_READY)
+            item.error_msg = d.get("error_msg", "")
+            # Sent items without errors are removed on load
+            if item.status == QueueItem.STATUS_SENT:
+                continue
+            items.append(item)
+        return items
+    except (OSError, json.JSONDecodeError, KeyError):
+        return []
 
 
 def _setup_css():
@@ -151,6 +218,17 @@ class PreferencesWindow(Adw.PreferencesWindow):
         display_group.add(self.max_pkg_row)
 
         send_page.add(display_group)
+
+        # Logging settings
+        log_group = Adw.PreferencesGroup(
+            title=_("Logging"),
+            description=_("Enable event logging to track application activity."),
+        )
+        self.logging_row = Adw.SwitchRow(title=_("Enable event logging"))
+        self.logging_row.set_active(self.settings.get("enable_logging", False))
+        log_group.add(self.logging_row)
+        send_page.add(log_group)
+
         self.add(send_page)
 
         self.connect("close-request", self._on_close)
@@ -172,6 +250,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
                 "from_email": self.email_row.get_text(),
                 "send_delay": int(self.delay_row.get_value()),
                 "max_packages": self._max_pkg_values[self.max_pkg_row.get_selected()],
+                "enable_logging": self.logging_row.get_active(),
             }
         )
         save_settings(self.settings)
@@ -257,18 +336,26 @@ class MainWindow(Adw.ApplicationWindow):
         self.stats_label.add_css_class("dim-label")
         header.pack_start(self.stats_label)
 
-        # Queue badge
+        # Queue badge + Show Queue button
         self._queue_label = Gtk.Label(label="")
         self._queue_label.add_css_class("queue-count")
         self._queue_label.set_visible(False)
         header.pack_end(self._queue_label)
 
-        # Send queue button
-        self._send_queue_btn = Gtk.Button(icon_name="mail-send-symbolic", tooltip_text=_("Send queue"))
-        self._send_queue_btn.add_css_class("suggested-action")
-        self._send_queue_btn.set_sensitive(False)
-        self._send_queue_btn.connect("clicked", self._on_send_queue)
-        header.pack_end(self._send_queue_btn)
+        # Show Queue button
+        self._show_queue_btn = Gtk.Button(icon_name="mail-send-symbolic", tooltip_text=_("Show Queue"))
+        self._show_queue_btn.connect("clicked", self._on_show_queue_dialog)
+        header.pack_end(self._show_queue_btn)
+
+        # Stats button
+        stats_btn = Gtk.Button(icon_name="utilities-system-monitor-symbolic", tooltip_text=_("Statistics"))
+        stats_btn.connect("clicked", self._on_show_stats)
+        header.pack_end(stats_btn)
+
+        # Lint button
+        lint_btn = Gtk.Button(icon_name="dialog-warning-symbolic", tooltip_text=_("Lint translation"))
+        lint_btn.connect("clicked", self._on_lint)
+        header.pack_end(lint_btn)
 
         # Import PO button
         import_btn = Gtk.Button(icon_name="document-open-symbolic", tooltip_text=_("Import translated PO file"))
@@ -284,13 +371,15 @@ class MainWindow(Adw.ApplicationWindow):
         menu = Gio.Menu()
         menu.append(_("Export as PO file…"), "app.export-po")
         menu.append(_("Import translated PO…"), "app.import-po")
+        menu.append(_("Show Queue"), "app.show-queue")
         menu.append(_("Clear queue"), "app.clear-queue")
+        menu.append(_("Statistics"), "app.stats")
         menu.append(_("Preferences"), "app.preferences")
         menu.append(_("About"), "app.about")
         menu_btn = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu)
         header.pack_end(menu_btn)
 
-        # Main content: 3-pane — sidebar | editor | queue
+        # Main content: 2-pane — sidebar | editor
         content_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         content_box.set_vexpand(True)
         main_box.append(content_box)
@@ -413,53 +502,13 @@ class MainWindow(Adw.ApplicationWindow):
 
         editor_box.append(bottom)
         content_box.append(editor_box)
-        content_box.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
 
-        # === RIGHT: Queue panel ===
-        queue_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        queue_box.set_size_request(280, -1)
-
-        queue_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        queue_header.set_margin_start(8)
-        queue_header.set_margin_end(8)
-        queue_header.set_margin_top(8)
-        queue_header.set_margin_bottom(4)
-
-        queue_title = Gtk.Label(label=_("Send Queue"), xalign=0, hexpand=True)
-        queue_title.add_css_class("heading")
-        queue_header.append(queue_title)
-
-        self._queue_count_label = Gtk.Label(label="0")
-        self._queue_count_label.add_css_class("dim-label")
-        queue_header.append(self._queue_count_label)
-
-        # Sort queue button
-        queue_sort_btn = Gtk.Button(icon_name="view-sort-ascending-symbolic", tooltip_text=_("Sort queue"))
-        queue_sort_btn.connect("clicked", self._on_sort_queue)
-        queue_header.append(queue_sort_btn)
-
-        queue_box.append(queue_header)
-
-        # Queue list
-        queue_scroll = Gtk.ScrolledWindow(vexpand=True)
-        self._queue_list = Gtk.ListBox()
-        self._queue_list.set_selection_mode(Gtk.SelectionMode.NONE)
-        queue_scroll.set_child(self._queue_list)
-        queue_box.append(queue_scroll)
-
-        # Queue status bar
-        self._queue_status = Gtk.Label(label="", xalign=0)
-        self._queue_status.add_css_class("dim-label")
-        self._queue_status.set_margin_start(8)
-        self._queue_status.set_margin_end(8)
-        self._queue_status.set_margin_top(4)
-        self._queue_status.set_margin_bottom(8)
-        queue_box.append(self._queue_status)
-
-        content_box.append(queue_box)
+        # Load persisted queue
+        self._queue = _load_queue()
 
         # Load initial data
         self._refresh_packages()
+        self._update_queue_badge()
 
     # --- Helpers ---
 
@@ -719,39 +768,124 @@ class MainWindow(Adw.ApplicationWindow):
                 item.long_text = long_text
                 item.status = QueueItem.STATUS_READY
                 item.error_msg = ""
-                self._rebuild_queue_ui()
+                _save_queue(self._queue)
+                self._update_queue_badge()
                 self.status_label.set_text(_("Updated {pkg} in queue").format(pkg=pkg["package"]))
+                _log_event(f"Updated {pkg['package']} in queue")
                 return
 
         self._queue.append(QueueItem(pkg["package"], pkg["md5"], short, long_text))
-        self._rebuild_queue_ui()
+        _save_queue(self._queue)
+        self._update_queue_badge()
         self.status_label.set_text(_("Added {pkg} to queue ({n} total)").format(
             pkg=pkg["package"], n=len(self._queue)))
+        _log_event(f"Added {pkg['package']} to queue")
 
     def _on_sort_queue(self, *_args):
         self._queue.sort(key=lambda q: q.package.lower())
-        self._rebuild_queue_ui()
+        _save_queue(self._queue)
+        self._update_queue_badge()
 
     def _clear_queue(self):
         self._queue = [q for q in self._queue if q.status == QueueItem.STATUS_SENDING]
-        self._rebuild_queue_ui()
+        _save_queue(self._queue)
+        self._update_queue_badge()
 
-    def _rebuild_queue_ui(self):
-        """Rebuild the queue list UI."""
-        # Clear
-        if hasattr(self._queue_list, "remove_all"):
-            self._queue_list.remove_all()
-        else:
-            while True:
-                row = self._queue_list.get_row_at_index(0)
-                if row is None:
-                    break
-                self._queue_list.remove(row)
-
+    def _update_queue_badge(self):
+        """Update the queue badge in the header bar."""
         ready_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_READY)
-        sent_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_SENT)
+        error_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_ERROR)
+        total = ready_count + error_count
+        if total > 0:
+            badge = f"📬 {ready_count}"
+            if error_count:
+                badge += f" ⚠ {error_count}"
+            self._queue_label.set_text(badge)
+            self._queue_label.set_visible(True)
+        else:
+            self._queue_label.set_visible(False)
+
+    def _remove_queue_item(self, idx):
+        if 0 <= idx < len(self._queue):
+            removed = self._queue.pop(idx)
+            _save_queue(self._queue)
+            self._update_queue_badge()
+            self.status_label.set_text(_("Removed {pkg} from queue").format(pkg=removed.package))
+
+    # --- Queue dialog ---
+
+    def _on_show_queue_dialog(self, *_args):
+        """Show queue as a popup dialog."""
+        dialog = Adw.Window(
+            transient_for=self,
+            title=_("Send Queue"),
+            default_width=600,
+            default_height=500,
+            modal=True,
+        )
+
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+        # Header bar for the dialog
+        header = Adw.HeaderBar()
+        main_box.append(header)
+
+        sort_btn = Gtk.Button(icon_name="view-sort-ascending-symbolic", tooltip_text=_("Sort queue"))
+        sort_btn.connect("clicked", lambda b: self._on_sort_queue_and_refresh_dialog(dialog))
+        header.pack_start(sort_btn)
+
+        # Queue list
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        queue_list = Gtk.ListBox()
+        queue_list.set_selection_mode(Gtk.SelectionMode.NONE)
+        scroll.set_child(queue_list)
+        main_box.append(scroll)
+
+        self._populate_queue_list(queue_list, dialog)
+
+        # Summary + buttons
+        ready_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_READY)
         error_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_ERROR)
 
+        settings = load_settings()
+        delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
+        eta = self._format_duration(ready_count * delay) if ready_count > 0 else _("N/A")
+
+        info_label = Gtk.Label(
+            label=_("{ready} ready, {errors} errors — ETA: {eta}").format(
+                ready=ready_count, errors=error_count, eta=eta),
+            xalign=0,
+        )
+        info_label.add_css_class("dim-label")
+        info_label.set_margin_start(12)
+        info_label.set_margin_end(12)
+        info_label.set_margin_top(8)
+        main_box.append(info_label)
+
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_box.set_halign(Gtk.Align.END)
+        btn_box.set_margin_start(12)
+        btn_box.set_margin_end(12)
+        btn_box.set_margin_top(8)
+        btn_box.set_margin_bottom(12)
+
+        clear_btn = Gtk.Button(label=_("Clear queue"))
+        clear_btn.add_css_class("destructive-action")
+        clear_btn.connect("clicked", lambda b: (self._clear_queue(), dialog.close()))
+        btn_box.append(clear_btn)
+
+        send_btn = Gtk.Button(label=_("Send All ({n})").format(n=ready_count))
+        send_btn.add_css_class("suggested-action")
+        send_btn.set_sensitive(ready_count > 0)
+        send_btn.connect("clicked", lambda b: (dialog.close(), self._on_send_queue()))
+        btn_box.append(send_btn)
+
+        main_box.append(btn_box)
+        dialog.set_content(main_box)
+        dialog.present()
+
+    def _populate_queue_list(self, queue_list, dialog):
+        """Populate a ListBox with queue items."""
         for i, item in enumerate(self._queue):
             row_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
             row_box.set_margin_start(8)
@@ -759,7 +893,6 @@ class MainWindow(Adw.ApplicationWindow):
             row_box.set_margin_top(4)
             row_box.set_margin_bottom(4)
 
-            # Status icon
             if item.status == QueueItem.STATUS_READY:
                 icon = Gtk.Image.new_from_icon_name("mail-unread-symbolic")
                 row_box.add_css_class("queue-ready")
@@ -773,46 +906,200 @@ class MainWindow(Adw.ApplicationWindow):
                 row_box.add_css_class("queue-error")
             row_box.append(icon)
 
-            # Package name
             name_label = Gtk.Label(label=item.package, xalign=0, hexpand=True)
             name_label.set_ellipsize(Pango.EllipsizeMode.END)
             if item.error_msg:
                 name_label.set_tooltip_text(item.error_msg)
             row_box.append(name_label)
 
-            # Remove button (only if not currently sending)
+            # Status text for errors
+            if item.status == QueueItem.STATUS_ERROR:
+                err_label = Gtk.Label(label=_("Error"))
+                err_label.add_css_class("error")
+                row_box.append(err_label)
+
             if item.status != QueueItem.STATUS_SENDING:
                 remove_btn = Gtk.Button(icon_name="user-trash-symbolic")
                 remove_btn.add_css_class("flat")
                 remove_btn.set_tooltip_text(_("Remove from queue"))
-                remove_btn.connect("clicked", lambda b, idx=i: self._remove_queue_item(idx))
+                remove_btn.connect("clicked", lambda b, idx=i: (
+                    self._remove_queue_item(idx), dialog.close()))
                 row_box.append(remove_btn)
 
-            self._queue_list.append(row_box)
+            queue_list.append(row_box)
 
-        self._queue_count_label.set_text(
-            _("{ready} ready, {sent} sent, {errors} errors").format(
-                ready=ready_count, sent=sent_count, errors=error_count)
+    def _on_sort_queue_and_refresh_dialog(self, dialog):
+        self._on_sort_queue()
+        dialog.close()
+        self._on_show_queue_dialog()
+
+    # --- Statistics dialog ---
+
+    def _on_show_stats(self, *_args):
+        """Show DDTP statistics dialog."""
+        self.status_label.set_text(_("Fetching statistics…"))
+
+        def do_fetch():
+            try:
+                stats = fetch_ddtp_stats()
+                GLib.idle_add(self._show_stats_dialog, stats)
+            except Exception as exc:
+                GLib.idle_add(self.status_label.set_text,
+                              _("Failed to fetch statistics: {e}").format(e=str(exc)))
+
+        threading.Thread(target=do_fetch, daemon=True).start()
+
+    def _show_stats_dialog(self, stats):
+        self.status_label.set_text(_("Ready"))
+        lang = self._current_lang()
+        lang_stats = stats.get("languages", {}).get(lang, {})
+        total_pkgs = stats.get("total_packages", 0)
+        active_pkgs = stats.get("active_packages", 0)
+
+        active_trans = lang_stats.get("active_translations", 0)
+        prev_trans = lang_stats.get("previously_translated", 0)
+        total_trans = lang_stats.get("total_translations", 0)
+
+        if active_pkgs > 0:
+            pct = (active_trans / active_pkgs) * 100
+        else:
+            pct = 0
+
+        lang_name = lang
+        for code, name in DDTP_LANGUAGES:
+            if code == lang:
+                lang_name = name
+                break
+
+        body = _(
+            "Language: {lang} ({code})\n\n"
+            "Active translations: {active}\n"
+            "Previously translated: {prev}\n"
+            "Total translations (all time): {total}\n\n"
+            "Active packages in Debian: {active_pkgs}\n"
+            "Total packages: {total_pkgs}\n\n"
+            "Completion: {pct:.1f}% of active packages"
+        ).format(
+            lang=lang_name, code=lang,
+            active=active_trans, prev=prev_trans, total=total_trans,
+            active_pkgs=active_pkgs, total_pkgs=total_pkgs,
+            pct=pct,
         )
 
-        # Update badge
-        if ready_count > 0:
-            self._queue_label.set_text(f"📬 {ready_count}")
-            self._queue_label.set_visible(True)
-            self._send_queue_btn.set_sensitive(not self._batch_running)
-        else:
-            self._queue_label.set_visible(False)
-            self._send_queue_btn.set_sensitive(False)
+        dialog = Adw.MessageDialog(
+            transient_for=self,
+            heading=_("DDTP Statistics"),
+            body=body,
+        )
+        dialog.add_response("close", _("Close"))
+        dialog.set_default_response("close")
+        dialog.connect("response", lambda d, r: d.close())
+        dialog.present()
 
-    def _remove_queue_item(self, idx):
-        if 0 <= idx < len(self._queue):
-            removed = self._queue.pop(idx)
-            self._rebuild_queue_ui()
-            self.status_label.set_text(_("Removed {pkg} from queue").format(pkg=removed.package))
+    # --- Lint ---
+
+    def _on_lint(self, *_args):
+        """Lint the current translation using l10n-lint."""
+        import shutil
+        import subprocess
+        import tempfile
+
+        if not self.current_pkg:
+            self.status_label.set_text(_("No package selected"))
+            return
+
+        buf = self.trans_view.get_buffer()
+        text = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False).strip()
+        if not text:
+            self.status_label.set_text(_("Translation is empty — nothing to lint"))
+            return
+
+        if not shutil.which("l10n-lint"):
+            dialog = Adw.MessageDialog(
+                transient_for=self,
+                heading=_("l10n-lint not found"),
+                body=_(
+                    "l10n-lint is not installed.\n\n"
+                    "Install it with:\n"
+                    "  pip install l10n-lint\n\n"
+                    "Or on Debian/Ubuntu:\n"
+                    "  apt install l10n-lint"
+                ),
+            )
+            dialog.add_response("close", _("Close"))
+            dialog.connect("response", lambda d, r: d.close())
+            dialog.present()
+            return
+
+        # Build a minimal PO file for linting
+        pkg = self.current_pkg
+        lang = self._current_lang()
+        lines = text.split("\n", 1)
+        short_trans = lines[0]
+        long_trans = lines[1].strip() if len(lines) > 1 else ""
+
+        po_content = (
+            f'msgid "{self._po_escape(pkg["short"])}"\n'
+            f'msgstr "{self._po_escape(short_trans)}"\n'
+        )
+        if pkg["long"] and long_trans:
+            po_content += (
+                f'\nmsgctxt "long:{pkg["package"]}"\n'
+                f'msgid {self._po_escape_multiline(pkg["long"])}\n'
+                f'msgstr {self._po_escape_multiline(long_trans)}\n'
+            )
+
+        self.status_label.set_text(_("Running l10n-lint…"))
+
+        def do_lint():
+            try:
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".po", delete=False, encoding="utf-8") as f:
+                    # Write a minimal PO header
+                    f.write(f'msgid ""\nmsgstr ""\n"Language: {lang}\\n"\n'
+                            f'"Content-Type: text/plain; charset=UTF-8\\n"\n\n')
+                    f.write(po_content)
+                    tmp_path = f.name
+
+                result = subprocess.run(
+                    ["l10n-lint", "--format", "text", tmp_path],
+                    capture_output=True, text=True, timeout=30,
+                )
+                os.unlink(tmp_path)
+                output = (result.stdout + result.stderr).strip()
+                GLib.idle_add(self._show_lint_result, output, result.returncode)
+            except Exception as exc:
+                GLib.idle_add(self.status_label.set_text,
+                              _("Lint error: {e}").format(e=str(exc)))
+
+        threading.Thread(target=do_lint, daemon=True).start()
+
+    def _show_lint_result(self, output, returncode):
+        self.status_label.set_text(_("Ready"))
+        if returncode == 0 and not output:
+            heading = _("Lint: No issues found ✓")
+            body = _("The translation passed all lint checks.")
+        elif returncode == 0:
+            heading = _("Lint: Passed with notes")
+            body = output
+        else:
+            heading = _("Lint: Issues found")
+            body = output if output else _("l10n-lint reported errors (exit code {c}).").format(c=returncode)
+
+        _log_event(f"Lint result for {self.current_pkg.get('package', '?')}: exit={returncode}")
+
+        dialog = Adw.MessageDialog(
+            transient_for=self,
+            heading=heading,
+            body=body,
+        )
+        dialog.add_response("close", _("Close"))
+        dialog.connect("response", lambda d, r: d.close())
+        dialog.present()
 
     # --- Batch send with confirmation ---
 
     def _on_send_queue(self, *_args):
+        """Send all ready items in the queue (with confirmation)."""
         ready = [q for q in self._queue if q.status == QueueItem.STATUS_READY]
         if not ready:
             return
@@ -862,7 +1149,6 @@ class MainWindow(Adw.ApplicationWindow):
         """Start sending all ready items in the queue."""
         self._batch_running = True
         self._batch_cancel = False
-        self._send_queue_btn.set_sensitive(False)
 
         # Show a progress dialog
         self._batch_dialog = Adw.Window(
@@ -958,7 +1244,7 @@ class MainWindow(Adw.ApplicationWindow):
                 break
 
             item.status = QueueItem.STATUS_SENDING
-            GLib.idle_add(self._rebuild_queue_ui)
+            GLib.idle_add(self._update_queue_badge)
             GLib.idle_add(self._batch_current.set_text,
                           _("Sending: {pkg} ({i}/{total})").format(pkg=item.package, i=i + 1, total=total))
             GLib.idle_add(self._batch_progress.set_fraction, (i + 0.5) / total)
@@ -975,7 +1261,9 @@ class MainWindow(Adw.ApplicationWindow):
                 errors += 1
                 self._batch_log(f"❌ {item.package}: {exc}")
 
-            GLib.idle_add(self._rebuild_queue_ui)
+            _save_queue(self._queue)
+            _log_event(f"Batch: {item.package} -> {item.status}")
+            GLib.idle_add(self._update_queue_badge)
             GLib.idle_add(self._batch_progress.set_fraction, (i + 1) / total)
 
             # Rate limit delay (not after last or if cancelled)
@@ -988,17 +1276,21 @@ class MainWindow(Adw.ApplicationWindow):
                     time.sleep(1)
                 GLib.idle_add(self._batch_countdown.set_text, "")
 
-        # Done
+        # Done — remove successfully sent items, keep errors
+        self._queue = [q for q in self._queue if q.status != QueueItem.STATUS_SENT]
+        _save_queue(self._queue)
+
         self._batch_running = False
         summary = _("Done! {sent} sent, {errors} errors out of {total}").format(
             sent=sent, errors=errors, total=total)
         self._batch_log(f"\n{summary}")
+        _log_event(summary)
         GLib.idle_add(self._batch_heading.set_text, _("Sending complete"))
         GLib.idle_add(self._batch_current.set_text, summary)
         GLib.idle_add(self._batch_countdown.set_text, "")
         GLib.idle_add(self._batch_cancel_btn.set_sensitive, False)
         GLib.idle_add(self._batch_close_btn.set_sensitive, True)
-        GLib.idle_add(self._rebuild_queue_ui)
+        GLib.idle_add(self._update_queue_badge)
         GLib.idle_add(self.status_label.set_text, summary)
 
     # --- PO Export/Import ---
@@ -1118,7 +1410,8 @@ class MainWindow(Adw.ApplicationWindow):
                 self._queue.append(QueueItem(pkg, md5, short, long_text))
                 added += 1
 
-        self._rebuild_queue_ui()
+        _save_queue(self._queue)
+        self._update_queue_badge()
         self.status_label.set_text(
             _("Imported {added} new, {updated} updated — {total} in queue").format(
                 added=added, updated=updated, total=len(self._queue)))
@@ -1206,6 +1499,8 @@ class DDTPTranslateApp(Adw.Application):
         self.create_action("export-po", self._on_export_po_action)
         self.create_action("import-po", self._on_import_po_action)
         self.create_action("clear-queue", self._on_clear_queue_action)
+        self.create_action("show-queue", self._on_show_queue_action)
+        self.create_action("stats", self._on_stats_action)
 
     def do_activate(self):
         win = self.props.active_window
@@ -1267,6 +1562,16 @@ class DDTPTranslateApp(Adw.Application):
         win = self.props.active_window
         if win:
             win._clear_queue()
+
+    def _on_show_queue_action(self, *_args):
+        win = self.props.active_window
+        if win:
+            win._on_show_queue_dialog()
+
+    def _on_stats_action(self, *_args):
+        win = self.props.active_window
+        if win:
+            win._on_show_stats()
 
     def _on_preferences(self, *_args):
         win = PreferencesWindow(self.props.active_window)

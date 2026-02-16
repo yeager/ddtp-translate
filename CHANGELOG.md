@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.4.0 (2026-02-16)
+
+### Added
+- **Statistics dialog** — fetch and display translation stats from ddtp.debian.org (Stats button in header + menu)
+- **Queue dialog** — queue moved from right panel to a popup dialog (Show Queue button), cleaner 2-pane layout
+- **Queue persistence** — queue is saved to disk and survives app restarts
+- **Queue ETA** — estimated time shown before sending queue
+- **Queue auto-cleanup** — successfully sent items are automatically removed; errors stay flagged
+- **Lint integration** — lint current translation using l10n-lint (Lint button in header)
+- **Event logging** — optional logging toggle in Preferences → Sending → Logging
+- **Secure password storage** — SMTP password stored in system keyring when available (python-keyring)
+
+### Changed
+- Package data cache TTL increased from 1 hour to 24 hours
+- Removed the third column (queue panel) from main window — now a popup dialog
+- About dialog action correctly shows About window (was accidentally triggering DDTP fetch)
+
+### Fixed
+- "Om" (About) button no longer triggers "Failed to fetch DDTP data" error
+
 ## 0.3.2 (2026-02-15)
 
 ### Fixed
