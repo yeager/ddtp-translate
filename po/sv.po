@@ -75,37 +75,40 @@ msgstr "Din e-postadress"
 
 #: src/ddtp_translate/main.py:192
 msgid "DDTSS"
-msgstr ""
+msgstr "DDTSS"
 
 #: src/ddtp_translate/main.py:195
 msgid "Submission Method"
-msgstr ""
+msgstr "Inlämningsmetod"
 
 #: src/ddtp_translate/main.py:196
 msgid "DDTSS (web) is recommended. SMTP (email) is legacy and may not work."
 msgstr ""
+"DDTSS (webb) rekommenderas. SMTP (e-post) är föråldrat och kanske inte "
+"fungerar."
 
 #: src/ddtp_translate/main.py:198
 msgid "Submit via"
-msgstr ""
+msgstr "Skicka via"
 
 #: src/ddtp_translate/main.py:209
 msgid "DDTSS Account"
-msgstr ""
+msgstr "DDTSS-konto"
 
 #: src/ddtp_translate/main.py:210
 msgid ""
 "Create an account at https://ddtp.debian.org/ddtss/index.cgi/createlogin"
 msgstr ""
+"Skapa ett konto på https://ddtp.debian.org/ddtss/index.cgi/createlogin"
 
 #: src/ddtp_translate/main.py:212
 msgid "Alias"
-msgstr ""
+msgstr "Alias"
 
 #: src/ddtp_translate/main.py:221 src/ddtp_translate/main.py:292
 #: src/ddtp_translate/main.py:304
 msgid "Test Login"
-msgstr ""
+msgstr "Testa inloggning"
 
 #: src/ddtp_translate/main.py:233
 msgid "Sending"
@@ -143,23 +146,23 @@ msgstr "Alla"
 
 #: src/ddtp_translate/main.py:269
 msgid "Logging"
-msgstr ""
+msgstr "Loggning"
 
 #: src/ddtp_translate/main.py:270
 msgid "Enable event logging to track application activity."
-msgstr ""
+msgstr "Aktivera händelseloggning för att spåra applikationsaktivitet."
 
 #: src/ddtp_translate/main.py:272
 msgid "Enable event logging"
-msgstr ""
+msgstr "Aktivera händelseloggning"
 
 #: src/ddtp_translate/main.py:291
 msgid "Enter alias and password first"
-msgstr ""
+msgstr "Ange alias och lösenord först"
 
 #: src/ddtp_translate/main.py:299
 msgid "Login successful!"
-msgstr ""
+msgstr "Inloggningen lyckades!"
 
 #: src/ddtp_translate/main.py:352 src/ddtp_translate/main.py:1680
 msgid "DDTP Translate"
@@ -179,15 +182,15 @@ msgstr "Växla värmekarta"
 
 #: src/ddtp_translate/main.py:417 src/ddtp_translate/main.py:445
 msgid "Show Queue"
-msgstr ""
+msgstr "Visa kö"
 
 #: src/ddtp_translate/main.py:422 src/ddtp_translate/main.py:447
 msgid "Statistics"
-msgstr ""
+msgstr "Statistik"
 
 #: src/ddtp_translate/main.py:427
 msgid "Lint translation"
-msgstr ""
+msgstr "Linta översättning"
 
 #: src/ddtp_translate/main.py:432
 msgid "Import translated PO file"
@@ -199,11 +202,11 @@ msgstr "Exportera som PO-fil"
 
 #: src/ddtp_translate/main.py:443
 msgid "Export as PO file…"
-msgstr "Exportera som PO-fil..."
+msgstr "Exportera som PO-fil…"
 
 #: src/ddtp_translate/main.py:444
 msgid "Import translated PO…"
-msgstr "Importera översatt PO..."
+msgstr "Importera översatt PO…"
 
 #: src/ddtp_translate/main.py:446 src/ddtp_translate/main.py:963
 msgid "Clear queue"
@@ -263,7 +266,7 @@ msgstr "Läser in…"
 
 #: src/ddtp_translate/main.py:626
 msgid "Downloading package data…"
-msgstr "Hämtar ner paketdata..."
+msgstr "Hämtar ner paketdata…"
 
 #: src/ddtp_translate/main.py:658
 #, python-brace-format
@@ -308,7 +311,7 @@ msgstr "SMTP är inte konfigurerat — öppna Inställningar först"
 
 #: src/ddtp_translate/main.py:798
 msgid "DDTSS not configured — open Preferences first"
-msgstr ""
+msgstr "DDTSS är inte konfigurerat – öppna Inställningar först"
 
 #: src/ddtp_translate/main.py:808
 msgid "Sending…"
@@ -321,17 +324,17 @@ msgstr "Inskickad!"
 #: src/ddtp_translate/main.py:823
 #, python-brace-format
 msgid "DDTSS login failed: {e}"
-msgstr ""
+msgstr "DDTSS-inloggning misslyckades: {e}"
 
 #: src/ddtp_translate/main.py:826
 #, python-brace-format
 msgid "Validation error: {e}"
-msgstr ""
+msgstr "Valideringsfel: {e}"
 
 #: src/ddtp_translate/main.py:829
 #, python-brace-format
 msgid "Package locked: {e}"
-msgstr ""
+msgstr "Paketet är låst: {e}"
 
 #: src/ddtp_translate/main.py:831
 #, python-brace-format
@@ -363,21 +366,21 @@ msgstr "Sortera kö"
 
 #: src/ddtp_translate/main.py:943
 msgid "N/A"
-msgstr ""
+msgstr "Inte tillgängligt"
 
 #: src/ddtp_translate/main.py:946
 #, python-brace-format
 msgid "{ready} ready, {errors} errors — ETA: {eta}"
-msgstr ""
+msgstr "{ready} klara, {errors} fel — ETA: {eta}"
 
 #: src/ddtp_translate/main.py:968
 #, python-brace-format
 msgid "Send All ({n})"
-msgstr ""
+msgstr "Skicka alla ({n})"
 
 #: src/ddtp_translate/main.py:1008
 msgid "Error"
-msgstr ""
+msgstr "Fel"
 
 #: src/ddtp_translate/main.py:1015
 msgid "Remove from queue"
@@ -385,12 +388,12 @@ msgstr "Ta bort från kö"
 
 #: src/ddtp_translate/main.py:1031
 msgid "Fetching statistics…"
-msgstr ""
+msgstr "Hämtar statistik…"
 
 #: src/ddtp_translate/main.py:1039
 #, python-brace-format
 msgid "Failed to fetch statistics: {e}"
-msgstr ""
+msgstr "Misslyckades med att hämta statistik: {e}"
 
 #: src/ddtp_translate/main.py:1066
 #, python-brace-format
@@ -406,10 +409,20 @@ msgid ""
 "\n"
 "Completion: {pct:.1f}% of active packages"
 msgstr ""
+"Språk: {lang} ({code})\n"
+"\n"
+"Aktiva översättningar: {active}\n"
+"Tidigare översatta: {prev}\n"
+"Totalt antal översättningar (samtliga): {total}\n"
+"\n"
+"Aktiva paket i Debian: {active_pkgs}\n"
+"Totalt antal paket: {total_pkgs}\n"
+"\n"
+"Fullbordande: {pct:.1f}% of aktiva paket"
 
 #: src/ddtp_translate/main.py:1082
 msgid "DDTP Statistics"
-msgstr ""
+msgstr "DDTP-statistik"
 
 #: src/ddtp_translate/main.py:1085 src/ddtp_translate/main.py:1120
 #: src/ddtp_translate/main.py:1186 src/ddtp_translate/main.py:1295
@@ -418,15 +431,15 @@ msgstr "Stäng"
 
 #: src/ddtp_translate/main.py:1099
 msgid "No package selected"
-msgstr ""
+msgstr "Inget paket valt"
 
 #: src/ddtp_translate/main.py:1105
 msgid "Translation is empty — nothing to lint"
-msgstr ""
+msgstr "Översättningen är tom — inget att linta"
 
 #: src/ddtp_translate/main.py:1111
 msgid "l10n-lint not found"
-msgstr ""
+msgstr "l10n-lint hittades inte"
 
 #: src/ddtp_translate/main.py:1113
 msgid ""
@@ -438,36 +451,43 @@ msgid ""
 "Or on Debian/Ubuntu:\n"
 "  apt install l10n-lint"
 msgstr ""
+"l10n-lint är inte installerat.\n"
+"\n"
+"Installera det med:\n"
+"  pip install l10n-lint\n"
+"\n"
+"Eller på Debian/Ubuntu:\n"
+"  apt install l10n-lint"
 
 #: src/ddtp_translate/main.py:1143
 msgid "Running l10n-lint…"
-msgstr ""
+msgstr "Kör l10n-lint…"
 
 #: src/ddtp_translate/main.py:1163
 #, python-brace-format
 msgid "Lint error: {e}"
-msgstr ""
+msgstr "Lint-fel: {e}"
 
 #: src/ddtp_translate/main.py:1170
 msgid "Lint: No issues found ✓"
-msgstr ""
+msgstr "Lint: Inga problem hittades ✓"
 
 #: src/ddtp_translate/main.py:1171
 msgid "The translation passed all lint checks."
-msgstr ""
+msgstr "Översättningen klarade alla lint-kontroller."
 
 #: src/ddtp_translate/main.py:1173
 msgid "Lint: Passed with notes"
-msgstr ""
+msgstr "Lint: Godkänt med anmärkningar"
 
 #: src/ddtp_translate/main.py:1176
 msgid "Lint: Issues found"
-msgstr ""
+msgstr "Lint: Problem hittades"
 
 #: src/ddtp_translate/main.py:1177
 #, python-brace-format
 msgid "l10n-lint reported errors (exit code {c})."
-msgstr ""
+msgstr "l10n-lint rapporterade fel (avslutningskod {c})."
 
 #: src/ddtp_translate/main.py:1209
 #, python-brace-format
@@ -521,7 +541,7 @@ msgstr "Skickar översättningar"
 
 #: src/ddtp_translate/main.py:1260
 msgid "Sending translations…"
-msgstr "Skickar översättningar..."
+msgstr "Skickar översättningar…"
 
 #: src/ddtp_translate/main.py:1318
 msgid "⏸ Cancelling after current email…"

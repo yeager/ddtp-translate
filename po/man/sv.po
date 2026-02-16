@@ -82,6 +82,11 @@ msgid ""
 "showing original English package descriptions alongside a translation area "
 "for easy comparison and editing."
 msgstr ""
+"B<ddtp-translate> är ett GTK4/Adwaita-program för översättning av Debian-"
+"paketbeskrivningar via Debian Description Translation Project (DDTP). "
+"Programmet har ett avancerat redigeringsgränssnitt där den ursprungliga "
+"engelska paketbeskrivningen visas bredvid ett översättningsfält för enkel "
+"jämförelse och redigering."
 
 #. type: Plain text
 #: data/man/ddtp-translate.1:10
@@ -92,6 +97,11 @@ msgid ""
 "storage. Integration with l10n-lint provides quality checking of "
 "translations before submission."
 msgstr ""
+"Applikationen integreras med DDTP:s arbetsflöden för e-postinlämning, vilket "
+"möjliggör direktinlämning av färdiga översättningar. Den har konfigurerbara "
+"SMTP-inställningar för e-postleverans och använder systemets nyckelring för "
+"säker lösenordslagring. Integration med l10n-lint möjliggör "
+"kvalitetskontroll av översättningar före inlämning."
 
 #. type: Plain text
 #: data/man/ddtp-translate.1:12
@@ -103,6 +113,12 @@ msgid ""
 "efficiently, while detailed statistics provide insights into translation "
 "progress and coverage across different package categories."
 msgstr ""
+"Version 0.4.0 introducerar förbättrade funktioner, inklusive statistik "
+"hämtad från ddtp.debian.org, funktioner för att spara och läsa in "
+"översättningsköer, en lint-knapp för omedelbar översättningsvalidering och "
+"omfattande händelseloggning. Köhanteringssystemet hjälper översättare att "
+"organisera sitt arbete effektivt, medan detaljerad statistik ger insikt i "
+"översättningsförloppet och täckningen inom olika paketkategorier."
 
 #. type: SH
 #: data/man/ddtp-translate.1:12
