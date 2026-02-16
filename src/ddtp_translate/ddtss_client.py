@@ -366,11 +366,10 @@ class DDTSSClient:
         status, body = self._request(url, data=data)
         self._check_error(body)
 
-        if "submitted" in body.lower() or status in (301, 302):
-            return True
-
-        # Check if we got redirected back to main (success)
-        if "Pending translation" in body or "forreview" in body:
+        # If _check_error passed (no DDTSS error found) and we got HTTP 200,
+        # the submit was successful. DDTSS may redirect to the main page,
+        # show a confirmation, or display the forreview queue.
+        if status in (200, 301, 302):
             return True
 
         raise DDTSSError(f"Unexpected response after submit (HTTP {status})")
