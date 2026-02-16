@@ -61,7 +61,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 DDTSS_BASE = "https://ddtp.debian.org/ddtss/index.cgi"
-USER_AGENT = "ddtp-translate/0.6.0 (GTK4; +https://github.com/yeager/ddtp-translate)"
+USER_AGENT = "ddtp-translate/0.6.1 (GTK4; +https://github.com/yeager/ddtp-translate)"
 
 # XDG config for cookie persistence
 _XDG = Path.home() / ".config" / "ddtp-translate"
@@ -356,6 +356,9 @@ class DDTSSClient:
     def submit_translation(self, package, short, long, comment=""):
         """Submit a translated description.
 
+        Automatically fetches the package first if needed (DDTSS requires
+        a fetch before the translate form is available).
+
         Args:
             package: Package name.
             short: Translated short description (single line, max 80 chars).
@@ -370,7 +373,23 @@ class DDTSSClient:
             DDTSSLockedError: Package locked by another user.
             DDTSSAuthError: Not logged in.
         """
-        url = f"{DDTSS_BASE}/{self.lang}/translate/{urllib.parse.quote(package)}"
+        pkg_quoted = urllib.parse.quote(package)
+
+        # Step 1: Fetch the package to ensure translate form is available
+        fetch_url = f"{DDTSS_BASE}/{self.lang}/fetch?package={pkg_quoted}"
+        f_status, f_body = self._request(fetch_url)
+        self._check_error(f_body)
+
+        # Step 2: GET the translate page to confirm it's ready
+        translate_url = f"{DDTSS_BASE}/{self.lang}/translate/{pkg_quoted}"
+        g_status, g_body = self._request(translate_url)
+        self._check_error(g_body)
+
+        # Verify we got the actual translate form, not a "Fetching..." page
+        if "Fetching package" in g_body:
+            raise DDTSSError(f"Package {package} not available for translation")
+
+        # Step 3: POST the translation
         data = {
             "short": short,
             "long": long,
@@ -379,12 +398,14 @@ class DDTSSClient:
             "_charset_": "UTF-8",
         }
 
-        status, body = self._request(url, data=data, multipart=True)
+        status, body = self._request(translate_url, data=data, multipart=True)
         self._check_error(body)
 
-        # If _check_error passed (no DDTSS error found) and we got HTTP 200,
-        # the submit was successful. DDTSS may redirect to the main page,
-        # show a confirmation, or display the forreview queue.
+        # Check for success confirmation
+        if "submitted" in body.lower():
+            return True
+
+        # If no error was raised and we got HTTP 200, treat as success
         if status in (200, 301, 302):
             return True
 
