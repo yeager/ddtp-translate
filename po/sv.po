@@ -93,19 +93,19 @@ msgstr "Fördröjning mellan e-postsändingar (sekunder)"
 
 #: src/ddtp_translate/main.py:136
 msgid "Display"
-msgstr ""
+msgstr "Visning"
 
 #: src/ddtp_translate/main.py:137
 msgid "Limit how many packages are loaded into the list for faster startup."
-msgstr ""
+msgstr "Begränsa antalet paket som läses in i listan för snabbare start."
 
 #: src/ddtp_translate/main.py:140
 msgid "Max packages to display"
-msgstr ""
+msgstr "Max antal paket att visa"
 
 #: src/ddtp_translate/main.py:144
 msgid "All"
-msgstr ""
+msgstr "Alla"
 
 #: src/ddtp_translate/main.py:202 src/ddtp_translate/main.py:1278
 msgid "DDTP Translate"
@@ -218,18 +218,20 @@ msgstr "{n} paket inlästa"
 #: src/ddtp_translate/main.py:545
 #, python-brace-format
 msgid "{shown} of {total} untranslated"
-msgstr ""
+msgstr "{shown} av {total} icke-översatta"
 
 #: src/ddtp_translate/main.py:555
 msgid ""
 "Could not connect to DDTP servers. Check your internet connection and try "
 "again."
 msgstr ""
+"Misslyckades med att ansluta till DDTP-servrarna. Kontrollera din "
+"internetanslutning och försök igen."
 
 #: src/ddtp_translate/main.py:557
 #, python-brace-format
 msgid "Failed to load packages: {error}"
-msgstr ""
+msgstr "Misslyckades med att läsa in paketen: {error}"
 
 #: src/ddtp_translate/main.py:589
 #, python-brace-format
@@ -309,6 +311,20 @@ msgid ""
 "The delay can be adjusted in Preferences → Sending.\n"
 "Make sure your SMTP settings and email address are correct."
 msgstr ""
+"Du är på väg att skicka {n} översättning(ar) till Debian Description Translation Project (DDTP) via e-post.\n"
+"\n"
+"⚠️ Viktig information:\n"
+"\n"
+"• Varje översättning skickas som ett separat e-postmeddelande till pdesc@ddtp.debian.org\n"
+"• En fördröjning på {delay} sekunder tillämpas mellan varje e-postmeddelande för att förhindra överbelastning av DDTP-servern\n"
+"• DDTP-servern drivs av volontärer – vänligen visa hänsyn\n"
+"• Beräknad tid: {time}\n"
+"• Du kan avbryta processen när som helst\n"
+"• Översättningar som har skickats kan inte återkallas\n"
+"• Eventuella SMTP-fel visas per paket\n"
+"\n"
+"Fördröjningen kan justeras i Inställningar → Sändning.\n"
+"Försäkra dig om att dina SMTP-inställningar och e-postadress är korrekta."
 
 #: src/ddtp_translate/main.py:848 src/ddtp_translate/main.py:913
 msgid "Cancel"
@@ -403,6 +419,18 @@ msgid ""
 "\n"
 "Before submitting, configure SMTP in Preferences (Gmail works well with an App Password)."
 msgstr ""
+"Denna app hjälper dig att översätta Debian-paketbeskrivningar genom Debian Description Translation Project (DDTP).\n"
+"\n"
+"Så här fungerar det:\n"
+"1. Välj ditt språk i rullgardinsmenyn\n"
+"2. Bläddra bland paket som behöver översättas\n"
+"3. Skriv din översättning i redigeraren\n"
+"4. Lägg till i kö eller skicka direkt\n"
+"5. Skicka kön – översättningarna skickas via e-post till DDTP\n"
+"\n"
+"Tips: Exportera som PO, översätt i din favoritredigerare och importera sedan flera samtidigt tillbaka till kön.\n"
+"\n"
+"Innan du skickar, konfigurera SMTP i Inställningar (Gmail fungerar bra med ett app-lösenord)."
 
 #: src/ddtp_translate/main.py:1238
 msgid "Get Started"
