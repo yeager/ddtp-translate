@@ -1,32 +1,41 @@
 # DDTP Translate
 
-[![Version](https://img.shields.io/badge/version-0.5.2-blue)](https://github.com/yeager/ddtp-translate/releases)
+[![Version](https://img.shields.io/badge/version-0.6.2-blue)](https://github.com/yeager/ddtp-translate/releases)
 [![License](https://img.shields.io/badge/license-GPL--3.0-green)](LICENSE)
 [![Transifex](https://img.shields.io/badge/translate-Transifex-blue)](https://app.transifex.com/danielnylander/ddtp-translate/)
 
 A GTK4/Adwaita application for translating Debian package descriptions via the Debian Description Translation Project (DDTP).
 
-![DDTP Translate](data/screenshots/ddtp-translate.png)
-
 ## Features
 
 - **3-pane layout** — Package list, side-by-side editor, and send queue
-- **Translation queue** — Queue translations and batch-send with rate limiting
+- **DDTSS integration** — Submit translations directly via the DDTSS web interface (no email needed)
+- **Translation queue** — Queue translations and batch-submit instantly
+- **Review translations** — Browse, review, accept/reject pending translations from DDTSS
+- **Lint checking** — Validate translations with l10n-lint integration
 - **PO export/import** — Export untranslated packages as .po, translate in your editor, import back
-- **Batch send with progress** — Per-package status, countdown timer, cancel support
-- **Welcome dialog** — Explains DDTP workflow on first start
-- **Rate limiting** — Configurable delay (default 30s) between emails to protect the server
+- **Batch submit with progress** — Per-package status, cancel support
 - **38 languages** — All DDTP-supported languages available
-- **Progress bar** — Pulse animation while loading package data
-- **Sortable packages** — A-Z / Z-A sorting
 - **Search & filter** — Find packages quickly
 - **Mirror fallback** — When ddtp.debian.org is down, compares Translation files from deb.debian.org
-- **Gmail preset** — One-click SMTP setup for Gmail
 - **Internationalized** — Swedish 100% translated, 18 languages via Transifex
 
-## Screenshot
+## Screenshots
 
-The 3-pane interface shows the package list (left), translation editor (center), and send queue (right). The welcome dialog explains the workflow on first launch.
+### Send Queue
+Queue translations and batch-submit. Sent packages are marked with ✅ and won't be re-submitted.
+
+![Send Queue](screenshots/queue.png)
+
+### Lint Check
+Validate translations with l10n-lint before submitting.
+
+![Lint Check](screenshots/lint.png)
+
+### Review Translations
+Browse pending reviews, accept as-is, accept with changes, or leave comments.
+
+![Review](screenshots/review.png)
 
 ## Installation
 
@@ -37,13 +46,6 @@ curl -fsSL https://yeager.github.io/debian-repo/KEY.gpg | sudo gpg --dearmor -o 
 echo "deb [signed-by=/usr/share/keyrings/yeager-archive-keyring.gpg] https://yeager.github.io/debian-repo stable main" | sudo tee /etc/apt/sources.list.d/yeager.list
 sudo apt update
 sudo apt install ddtp-translate
-```
-
-### Fedora/RHEL
-
-```bash
-sudo dnf config-manager --add-repo https://yeager.github.io/rpm-repo/yeager.repo
-sudo dnf install ddtp-translate
 ```
 
 ### From source
