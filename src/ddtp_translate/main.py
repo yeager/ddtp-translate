@@ -4,6 +4,7 @@
 import gettext
 import locale
 import os
+import re
 import sys
 import threading
 import time
@@ -39,18 +40,23 @@ _ = gettext.gettext
 
 APP_ID = "se.danielnylander.ddtp-translate"
 
-# Queue persistence path
+
+# --- Data directory helpers ---
+
 def _data_dir():
     xdg = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
     d = os.path.join(xdg, "ddtp-translate")
     os.makedirs(d, exist_ok=True)
     return d
 
+
 def _queue_path():
     return os.path.join(_data_dir(), "queue.json")
 
+
 def _log_path():
     return os.path.join(_data_dir(), "events.log")
+
 
 def _log_event(message):
     """Log an event if logging is enabled."""
@@ -64,6 +70,7 @@ def _log_event(message):
             f.write(f"[{ts}] {message}\n")
     except OSError:
         pass
+
 
 def _save_queue(queue):
     """Persist queue to disk."""
@@ -83,6 +90,7 @@ def _save_queue(queue):
             json.dump(data, f, ensure_ascii=False, indent=2)
     except OSError:
         pass
+
 
 def _load_queue():
     """Load queue from disk."""
@@ -116,12 +124,36 @@ def _setup_css():
     .pkg-flag-submitted { color: #26a269; }
     .pkg-flag-modified { color: #e5a50a; }
     .pkg-flag-queued { color: @accent_color; }
+    .pkg-flag-error { color: #c01c28; }
+    .status-bar { padding: 4px 12px; }
+    .pkg-banner { padding: 4px 12px; }
+    .compact-row { padding: 2px 6px; }
     """
     provider = Gtk.CssProvider()
     provider.load_from_data(css)
     Gtk.StyleContext.add_provider_for_display(
         Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
+
+# --- Queue item ---
+
+class QueueItem:
+    """A translation queued for submission."""
+    STATUS_READY = "ready"
+    STATUS_SENDING = "sending"
+    STATUS_SENT = "sent"
+    STATUS_ERROR = "error"
+
+    def __init__(self, package, md5, short, long_text=""):
+        self.package = package
+        self.md5 = md5
+        self.short = short
+        self.long_text = long_text
+        self.status = self.STATUS_READY
+        self.error_msg = ""
+
+
+# --- Preferences Window ---
 
 class PreferencesWindow(Adw.PreferencesWindow):
     """Application settings."""
@@ -149,7 +181,6 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.ddtss_pass_row.set_text(self.settings.get("ddtss_password", ""))
         ddtss_group.add(self.ddtss_pass_row)
 
-        # Test login button
         ddtss_test_btn = Gtk.Button(label=_("Test Login"))
         ddtss_test_btn.add_css_class("suggested-action")
         ddtss_test_btn.add_css_class("pill")
@@ -161,10 +192,9 @@ class PreferencesWindow(Adw.PreferencesWindow):
         ddtss_page.add(ddtss_group)
         self.add(ddtss_page)
 
-        # Display & settings page
+        # Settings page
         settings_page = Adw.PreferencesPage(title=_("Settings"), icon_name="preferences-system-symbolic")
 
-        # Max packages setting
         display_group = Adw.PreferencesGroup(
             title=_("Display"),
             description=_("Limit how many packages are loaded into the list for faster startup."),
@@ -172,7 +202,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         self.max_pkg_row = Adw.ComboRow(title=_("Max packages to display"))
         max_pkg_model = Gtk.StringList()
-        self._max_pkg_values = [500, 1000, 5000, 0]  # 0 = all
+        self._max_pkg_values = [500, 1000, 5000, 0]
         for v in self._max_pkg_values:
             max_pkg_model.append(str(v) if v > 0 else _("All"))
         self.max_pkg_row.set_model(max_pkg_model)
@@ -185,7 +215,6 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         settings_page.add(display_group)
 
-        # Logging settings
         log_group = Adw.PreferencesGroup(
             title=_("Logging"),
             description=_("Enable event logging to track application activity."),
@@ -197,10 +226,32 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         self.add(settings_page)
 
+        # Workflow page (v0.8.0)
+        workflow_page = Adw.PreferencesPage(title=_("Workflow"), icon_name="emblem-system-symbolic")
+        workflow_group = Adw.PreferencesGroup(
+            title=_("Workflow"),
+            description=_("Customize the translation workflow."),
+        )
+
+        self.auto_lint_row = Adw.SwitchRow(title=_("Auto-lint before submit"))
+        self.auto_lint_row.set_active(self.settings.get("auto_lint", True))
+        workflow_group.add(self.auto_lint_row)
+
+        self.auto_advance_row = Adw.SwitchRow(title=_("Auto-advance to next package after submit"))
+        self.auto_advance_row.set_active(self.settings.get("auto_advance", True))
+        workflow_group.add(self.auto_advance_row)
+
+        self.cache_ttl_row = Adw.SpinRow.new_with_range(1, 168, 1)
+        self.cache_ttl_row.set_title(_("Cache TTL (hours)"))
+        self.cache_ttl_row.set_value(self.settings.get("cache_ttl_hours", 24))
+        workflow_group.add(self.cache_ttl_row)
+
+        workflow_page.add(workflow_group)
+        self.add(workflow_page)
+
         self.connect("close-request", self._on_close)
 
     def _test_ddtss_login(self, btn):
-        """Test DDTSS login credentials."""
         alias = self.ddtss_alias_row.get_text().strip()
         password = self.ddtss_pass_row.get_text().strip()
         if not alias or not password:
@@ -219,7 +270,6 @@ class PreferencesWindow(Adw.PreferencesWindow):
                 GLib.idle_add(lambda: btn.set_label(f"❌ {e}") or False)
             GLib.timeout_add(3000, lambda: btn.set_label(_("Test Login")) or False)
 
-        import threading
         threading.Thread(target=_do_test, daemon=True).start()
 
     def _on_close(self, *_args):
@@ -229,31 +279,19 @@ class PreferencesWindow(Adw.PreferencesWindow):
                 "ddtss_password": self.ddtss_pass_row.get_text(),
                 "max_packages": self._max_pkg_values[self.max_pkg_row.get_selected()],
                 "enable_logging": self.logging_row.get_active(),
+                "auto_lint": self.auto_lint_row.get_active(),
+                "auto_advance": self.auto_advance_row.get_active(),
+                "cache_ttl_hours": int(self.cache_ttl_row.get_value()),
             }
         )
         save_settings(self.settings)
         return False
 
 
-# --- Queue item ---
-class QueueItem:
-    """A translation queued for submission."""
-    STATUS_READY = "ready"
-    STATUS_SENDING = "sending"
-    STATUS_SENT = "sent"
-    STATUS_ERROR = "error"
-
-    def __init__(self, package, md5, short, long_text=""):
-        self.package = package
-        self.md5 = md5
-        self.short = short
-        self.long_text = long_text
-        self.status = self.STATUS_READY
-        self.error_msg = ""
-
+# --- Main Window ---
 
 class MainWindow(Adw.ApplicationWindow):
-    """Main application window."""
+    """Main application window with three-panel layout."""
 
     def __init__(self, app, **kwargs):
         super().__init__(application=app, title=_("DDTP Translate"), default_width=1200, default_height=750, **kwargs)
@@ -264,23 +302,26 @@ class MainWindow(Adw.ApplicationWindow):
         self._heatmap_mode = False
         self._sort_ascending = True
         self._last_send_time = 0
-        self._queue = []  # list of QueueItem
+        self._queue = []
         self._batch_running = False
         self._batch_cancel = False
-        self._submitted_packages = set()  # packages successfully sent (by name)
-        self._modified_packages = set()   # packages with unsaved translation edits
+        self._submitted_packages = set()
+        self._modified_packages = set()
+        self._error_packages = set()
+        self._ddtss_logged_in = False
+        self._completion_pct = 0.0
 
         self.connect("close-request", self._on_close_request)
 
         _setup_css()
 
         # Main layout
-        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.set_content(main_box)
+        outer_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.set_content(outer_box)
 
         # Header bar
         header = Adw.HeaderBar()
-        main_box.append(header)
+        outer_box.append(header)
 
         # Language dropdown
         lang_store = Gtk.StringList()
@@ -318,11 +359,17 @@ class MainWindow(Adw.ApplicationWindow):
         self.stats_label.add_css_class("dim-label")
         header.pack_start(self.stats_label)
 
-        # Queue badge + Show Queue button
+        # Queue badge
         self._queue_label = Gtk.Label(label="")
         self._queue_label.add_css_class("queue-count")
         self._queue_label.set_visible(False)
         header.pack_end(self._queue_label)
+
+        # Review badge
+        self._review_badge = Gtk.Label(label="")
+        self._review_badge.add_css_class("queue-count")
+        self._review_badge.set_visible(False)
+        header.pack_end(self._review_badge)
 
         # Show Queue button
         self._show_queue_btn = Gtk.Button(icon_name="mail-send-symbolic", tooltip_text=_("Show Queue"))
@@ -354,27 +401,64 @@ class MainWindow(Adw.ApplicationWindow):
         export_btn.connect("clicked", self._on_export_po)
         header.pack_end(export_btn)
 
-        # Hamburger menu
+        # Hamburger menu with accelerator hints
         menu = Gio.Menu()
-        menu.append(_("Export as PO file…"), "app.export-po")
-        menu.append(_("Import translated PO…"), "app.import-po")
-        menu.append(_("Review translations"), "app.review")
-        menu.append(_("Show Queue"), "app.show-queue")
-        menu.append(_("Clear queue"), "app.clear-queue")
-        menu.append(_("Statistics"), "app.stats")
-        menu.append(_("Preferences"), "app.preferences")
-        menu.append(_("About"), "app.about")
+
+        file_section = Gio.Menu()
+        file_section.append(_("Export as PO file…"), "app.export-po")
+        file_section.append(_("Import translated PO…"), "app.import-po")
+        menu.append_section(None, file_section)
+
+        action_section = Gio.Menu()
+        item = Gio.MenuItem.new(_("Submit Now"), "app.submit-now")
+        item.set_attribute_value("accel", GLib.Variant.new_string("<Control>Return"))
+        action_section.append_item(item)
+        item = Gio.MenuItem.new(_("Add to Queue"), "app.add-to-queue")
+        item.set_attribute_value("accel", GLib.Variant.new_string("<Control><Shift>Return"))
+        action_section.append_item(item)
+        item = Gio.MenuItem.new(_("Lint Translation"), "app.lint")
+        item.set_attribute_value("accel", GLib.Variant.new_string("<Control>l"))
+        action_section.append_item(item)
+        item = Gio.MenuItem.new(_("Refresh"), "app.refresh")
+        item.set_attribute_value("accel", GLib.Variant.new_string("F5"))
+        action_section.append_item(item)
+        menu.append_section(None, action_section)
+
+        nav_section = Gio.Menu()
+        item = Gio.MenuItem.new(_("Next Package"), "app.next-package")
+        item.set_attribute_value("accel", GLib.Variant.new_string("<Control>n"))
+        nav_section.append_item(item)
+        item = Gio.MenuItem.new(_("Previous Package"), "app.prev-package")
+        item.set_attribute_value("accel", GLib.Variant.new_string("<Control>p"))
+        nav_section.append_item(item)
+        menu.append_section(None, nav_section)
+
+        misc_section = Gio.Menu()
+        misc_section.append(_("Review translations"), "app.review")
+        misc_section.append(_("Show Queue"), "app.show-queue")
+        misc_section.append(_("Clear queue"), "app.clear-queue")
+        misc_section.append(_("Statistics"), "app.stats")
+        menu.append_section(None, misc_section)
+
+        bottom_section = Gio.Menu()
+        item = Gio.MenuItem.new(_("Keyboard Shortcuts"), "app.shortcuts")
+        item.set_attribute_value("accel", GLib.Variant.new_string("<Control>question"))
+        bottom_section.append_item(item)
+        bottom_section.append(_("Preferences"), "app.preferences")
+        bottom_section.append(_("About"), "app.about")
+        menu.append_section(None, bottom_section)
+
         menu_btn = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu)
         header.pack_end(menu_btn)
 
-        # Main content: 2-pane — sidebar | editor
-        content_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        content_box.set_vexpand(True)
-        main_box.append(content_box)
+        # Content area: sidebar (220px) + editor panes
+        content_paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        content_paned.set_vexpand(True)
+        outer_box.append(content_paned)
 
-        # === LEFT: Sidebar (package list) ===
+        # === LEFT: Sidebar (package list) — 220px, compact rows ===
         sidebar_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        sidebar_box.set_size_request(250, -1)
+        sidebar_box.set_size_request(220, -1)
 
         self.search_entry = Gtk.SearchEntry(placeholder_text=_("Filter packages…"))
         self.search_entry.set_margin_start(6)
@@ -415,15 +499,24 @@ class MainWindow(Adw.ApplicationWindow):
         self._sidebar_stack.add_named(hm_scroll, "heatmap")
         sidebar_box.append(self._sidebar_stack)
 
-        content_box.append(sidebar_box)
-        content_box.append(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
+        content_paned.set_start_child(sidebar_box)
+        content_paned.set_resize_start_child(False)
+        content_paned.set_shrink_start_child(False)
+        content_paned.set_position(220)
 
-        # === CENTER: Editor ===
-        editor_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        editor_box.set_hexpand(True)
+        # === RIGHT: Editor area ===
+        editor_outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
-        editor_paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        editor_paned.set_vexpand(True)
+        # Package name banner above editor
+        self._pkg_banner = Gtk.Label(label="", xalign=0)
+        self._pkg_banner.add_css_class("title-4")
+        self._pkg_banner.add_css_class("pkg-banner")
+        self._pkg_banner.set_visible(False)
+        editor_outer.append(self._pkg_banner)
+
+        # Horizontal editor paned — Original (left) | Translation (right) — EQUAL SIZE
+        self._editor_paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        self._editor_paned.set_vexpand(True)
 
         # Left: original
         left_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -441,7 +534,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.orig_view.set_margin_bottom(4)
         left_scroll.set_child(self.orig_view)
         left_box.append(left_scroll)
-        editor_paned.set_start_child(left_box)
+        self._editor_paned.set_start_child(left_box)
 
         # Right: translation
         right_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -460,37 +553,53 @@ class MainWindow(Adw.ApplicationWindow):
         self.trans_view.get_buffer().connect("changed", self._on_trans_buffer_changed)
         right_scroll.set_child(self.trans_view)
         right_box.append(right_scroll)
-        editor_paned.set_end_child(right_box)
+        self._editor_paned.set_end_child(right_box)
 
-        editor_box.append(editor_paned)
+        editor_outer.append(self._editor_paned)
 
-        # Bottom bar
-        bottom = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        bottom.set_margin_start(8)
-        bottom.set_margin_end(8)
-        bottom.set_margin_top(6)
-        bottom.set_margin_bottom(6)
+        # Button bar
+        btn_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_bar.set_halign(Gtk.Align.END)
+        btn_bar.set_margin_start(8)
+        btn_bar.set_margin_end(8)
+        btn_bar.set_margin_top(6)
+        btn_bar.set_margin_bottom(2)
 
-        self.status_label = Gtk.Label(label=_("Ready"), xalign=0, hexpand=True)
-        self.status_label.add_css_class("dim-label")
-        bottom.append(self.status_label)
-
-        # Add to queue button
         self._add_queue_btn = Gtk.Button(label=_("Add to Queue"))
         self._add_queue_btn.set_tooltip_text(_("Add this translation to the send queue"))
         self._add_queue_btn.set_sensitive(False)
         self._add_queue_btn.connect("clicked", self._on_add_to_queue)
-        bottom.append(self._add_queue_btn)
+        btn_bar.append(self._add_queue_btn)
 
-        # Direct submit button
         self.submit_btn = Gtk.Button(label=_("Submit Now"))
         self.submit_btn.add_css_class("suggested-action")
         self.submit_btn.set_sensitive(False)
         self.submit_btn.connect("clicked", self._on_submit)
-        bottom.append(self.submit_btn)
+        btn_bar.append(self.submit_btn)
 
-        editor_box.append(bottom)
-        content_box.append(editor_box)
+        editor_outer.append(btn_bar)
+        content_paned.set_end_child(editor_outer)
+
+        # === Status Bar (bottom) ===
+        status_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        status_bar.add_css_class("status-bar")
+
+        self._status_counts = Gtk.Label(label="", xalign=0)
+        self._status_counts.add_css_class("dim-label")
+        status_bar.append(self._status_counts)
+
+        self.status_label = Gtk.Label(label=_("Ready"), xalign=0.5, hexpand=True)
+        self.status_label.add_css_class("dim-label")
+        status_bar.append(self.status_label)
+
+        self._status_right = Gtk.Label(label="", xalign=1)
+        self._status_right.add_css_class("dim-label")
+        status_bar.append(self._status_right)
+
+        outer_box.append(status_bar)
+
+        # Set equal paned position after window is realized
+        self.connect("realize", self._on_realize_set_paned)
 
         # Load persisted queue
         self._queue = _load_queue()
@@ -498,6 +607,34 @@ class MainWindow(Adw.ApplicationWindow):
         # Load initial data
         self._refresh_packages()
         self._update_queue_badge()
+        self._update_status_bar()
+
+    def _on_realize_set_paned(self, *_args):
+        def set_pos():
+            width = self._editor_paned.get_allocated_width()
+            if width > 0:
+                self._editor_paned.set_position(width // 2)
+            return False
+        GLib.idle_add(set_pos)
+
+    # --- Status Bar ---
+
+    def _update_status_bar(self):
+        untranslated = len(self.packages)
+        queue_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_READY)
+        sent_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_SENT)
+        self._status_counts.set_text(
+            _("{untranslated} untranslated | {queue} in queue | {sent} submitted").format(
+                untranslated=untranslated, queue=queue_count, sent=sent_count))
+
+        lang = self._current_lang()
+        lang_name = lang
+        for code, name in DDTP_LANGUAGES:
+            if code == lang:
+                lang_name = name
+                break
+        login_status = _("logged in") if self._ddtss_logged_in else _("not logged in")
+        self._status_right.set_text(f"{lang_name} | {self._completion_pct:.1f}% | DDTSS: {login_status}")
 
     # --- Helpers ---
 
@@ -566,8 +703,24 @@ class MainWindow(Adw.ApplicationWindow):
 
         threading.Thread(target=do_fetch, daemon=True).start()
 
+        # Fetch stats for completion %
+        def do_stats():
+            try:
+                stats = fetch_ddtp_stats()
+                lang_stats = stats.get("languages", {}).get(lang, {})
+                active_pkgs = stats.get("active_packages", 0)
+                active_trans = lang_stats.get("active_translations", 0)
+                if active_pkgs > 0:
+                    self._completion_pct = (active_trans / active_pkgs) * 100
+                else:
+                    self._completion_pct = 0.0
+                GLib.idle_add(self._update_status_bar)
+            except Exception:
+                pass
+
+        threading.Thread(target=do_stats, daemon=True).start()
+
     def _get_max_packages(self):
-        """Get max packages limit from settings (0 = all)."""
         return self.settings.get("max_packages", 500)
 
     def _on_packages_loaded(self, pkgs):
@@ -576,19 +729,18 @@ class MainWindow(Adw.ApplicationWindow):
         self._progress_bar.set_text(_("{n} packages loaded").format(n=total))
         GLib.timeout_add(1500, self._hide_progress)
         pkgs.sort(key=lambda p: p.get("package", "").lower(), reverse=not self._sort_ascending)
-        self._all_packages = pkgs  # keep full list for export/search
+        self._all_packages = pkgs
         limit = self._get_max_packages()
         if limit > 0 and len(pkgs) > limit:
             display_pkgs = pkgs[:limit]
             self.stats_label.set_text(_("{shown} of {total} untranslated").format(shown=limit, total=total))
             self._populate_list(display_pkgs, update_stats=False)
         else:
-            display_pkgs = pkgs
-            self._populate_list(display_pkgs)
+            self._populate_list(pkgs)
+        self._update_status_bar()
 
     def _on_load_error(self, msg):
         self._progress_bar.set_visible(False)
-        # Show user-friendly message instead of raw exception
         if "urlopen" in msg or "Connection refused" in msg or "timed out" in msg or "unreachable" in msg.lower():
             friendly = _("Could not connect to DDTP servers. Check your internet connection and try again.")
         else:
@@ -613,41 +765,54 @@ class MainWindow(Adw.ApplicationWindow):
         self._heatmap_mode = btn.get_active()
         self._sidebar_stack.set_visible_child_name("heatmap" if self._heatmap_mode else "list")
 
+    def _get_status_icon(self, pkg_name):
+        """Return a Gtk.Image status icon for a package, or None."""
+        if pkg_name in self._submitted_packages:
+            icon = Gtk.Image.new_from_icon_name("emblem-ok-symbolic")
+            icon.set_tooltip_text(_("Submitted ✅"))
+            icon.add_css_class("pkg-flag-submitted")
+            return icon
+        if pkg_name in self._error_packages:
+            icon = Gtk.Image.new_from_icon_name("dialog-error-symbolic")
+            icon.set_tooltip_text(_("Submission error ⚠️"))
+            icon.add_css_class("pkg-flag-error")
+            return icon
+        if any(q.package == pkg_name and q.status == QueueItem.STATUS_READY for q in self._queue):
+            icon = Gtk.Image.new_from_icon_name("mail-unread-symbolic")
+            icon.set_tooltip_text(_("In queue 📬"))
+            icon.add_css_class("pkg-flag-queued")
+            return icon
+        if pkg_name in self._modified_packages:
+            icon = Gtk.Image.new_from_icon_name("document-edit-symbolic")
+            icon.set_tooltip_text(_("Modified — not in queue 📝"))
+            icon.add_css_class("pkg-flag-modified")
+            return icon
+        return None
+
     def _populate_list(self, pkgs, update_stats=True):
         self.packages = pkgs
         self._clear_list()
         for pkg in pkgs:
             row_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-            row_box.set_margin_start(8)
-            row_box.set_margin_end(8)
-            row_box.set_margin_top(4)
-            row_box.set_margin_bottom(4)
+            row_box.add_css_class("compact-row")
+            row_box.set_margin_start(6)
+            row_box.set_margin_end(6)
+            row_box.set_margin_top(2)
+            row_box.set_margin_bottom(2)
 
             label = Gtk.Label(label=pkg["package"], xalign=0, hexpand=True)
             label.set_ellipsize(Pango.EllipsizeMode.END)
             row_box.append(label)
 
-            pkg_name = pkg["package"]
-            if pkg_name in self._submitted_packages:
-                icon = Gtk.Image.new_from_icon_name("emblem-ok-symbolic")
-                icon.set_tooltip_text(_("Submitted ✅"))
-                icon.add_css_class("pkg-flag-submitted")
-                row_box.append(icon)
-            elif any(q.package == pkg_name and q.status == QueueItem.STATUS_READY for q in self._queue):
-                icon = Gtk.Image.new_from_icon_name("mail-unread-symbolic")
-                icon.set_tooltip_text(_("In queue"))
-                icon.add_css_class("pkg-flag-queued")
-                row_box.append(icon)
-            elif pkg_name in self._modified_packages:
-                icon = Gtk.Image.new_from_icon_name("document-edit-symbolic")
-                icon.set_tooltip_text(_("Modified — not in queue"))
-                icon.add_css_class("pkg-flag-modified")
+            icon = self._get_status_icon(pkg["package"])
+            if icon:
                 row_box.append(icon)
 
             self.pkg_list.append(row_box)
         if update_stats:
             self.stats_label.set_text(_("{n} untranslated").format(n=len(pkgs)))
         self.status_label.set_text(_("Ready"))
+        self._update_status_bar()
 
         # Rebuild heatmap
         while True:
@@ -679,14 +844,12 @@ class MainWindow(Adw.ApplicationWindow):
             self._heatmap_flow.append(box)
 
     def _on_trans_buffer_changed(self, buf):
-        """Track that the current package's translation has been modified."""
         if self.current_pkg:
             pkg_name = self.current_pkg["package"]
             if pkg_name not in self._submitted_packages:
                 self._modified_packages.add(pkg_name)
 
     def _refresh_pkg_list_flags(self):
-        """Refresh the package list to update flag icons."""
         if self.packages:
             self._populate_list(self.packages, update_stats=False)
 
@@ -704,8 +867,9 @@ class MainWindow(Adw.ApplicationWindow):
             if row is None:
                 break
             child = row.get_child()
-            visible = query in child.get_text().lower() if child else True
-            row.set_visible(visible)
+            first_child = child.get_first_child() if child else None
+            text = first_child.get_text().lower() if first_child and hasattr(first_child, 'get_text') else ""
+            row.set_visible(query in text)
             idx += 1
 
     def _on_pkg_selected(self, _listbox, row):
@@ -713,6 +877,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.current_pkg = None
             self.submit_btn.set_sensitive(False)
             self._add_queue_btn.set_sensitive(False)
+            self._pkg_banner.set_visible(False)
             return
 
         idx = row.get_index()
@@ -726,7 +891,24 @@ class MainWindow(Adw.ApplicationWindow):
             self.trans_view.get_buffer().set_text("")
             self.submit_btn.set_sensitive(True)
             self._add_queue_btn.set_sensitive(True)
+            self._pkg_banner.set_text(pkg["package"])
+            self._pkg_banner.set_visible(True)
             self.status_label.set_text(_("Editing: {pkg}").format(pkg=pkg["package"]))
+
+    def _advance_to_next_package(self):
+        if not self.packages:
+            return
+        row = self.pkg_list.get_selected_row()
+        next_idx = (row.get_index() + 1) if row else 0
+        if next_idx < len(self.packages):
+            self._select_pkg_by_index(next_idx)
+
+    def _go_to_prev_package(self):
+        if not self.packages:
+            return
+        row = self.pkg_list.get_selected_row()
+        if row and row.get_index() > 0:
+            self._select_pkg_by_index(row.get_index() - 1)
 
     # --- Single submit ---
 
@@ -741,7 +923,6 @@ class MainWindow(Adw.ApplicationWindow):
             return
 
         settings = load_settings()
-
         if not settings.get("ddtss_alias"):
             self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
             return
@@ -761,31 +942,37 @@ class MainWindow(Adw.ApplicationWindow):
                 if not client.is_logged_in():
                     client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
                 client.submit_translation(pkg["package"], short, long_text)
+                self._ddtss_logged_in = True
                 self._last_send_time = time.time()
                 self._submitted_packages.add(pkg["package"])
                 self._modified_packages.discard(pkg["package"])
+                self._error_packages.discard(pkg["package"])
                 GLib.idle_add(self._refresh_pkg_list_flags)
+                GLib.idle_add(self._update_status_bar)
                 GLib.idle_add(self._show_submit_result, pkg["package"], True, "")
+                if settings.get("auto_advance", True):
+                    GLib.idle_add(self._advance_to_next_package)
             except DDTSSAuthError as exc:
+                self._error_packages.add(pkg["package"])
                 GLib.idle_add(self._show_submit_result, pkg["package"], False,
                     _("Login failed: {e}").format(e=str(exc)))
             except DDTSSValidationError as exc:
+                self._error_packages.add(pkg["package"])
                 GLib.idle_add(self._show_submit_result, pkg["package"], False,
                     _("Validation error: {e}").format(e=str(exc)))
             except DDTSSLockedError as exc:
+                self._error_packages.add(pkg["package"])
                 GLib.idle_add(self._show_submit_result, pkg["package"], False,
                     _("Package locked: {e}").format(e=str(exc)))
             except Exception as exc:
+                self._error_packages.add(pkg["package"])
                 GLib.idle_add(self._show_submit_result, pkg["package"], False,
                     _("Error: {e}").format(e=str(exc)))
             GLib.idle_add(self.submit_btn.set_sensitive, True)
 
         threading.Thread(target=do_send, daemon=True).start()
 
-    # --- Queue management ---
-
     def _show_submit_result(self, package, success, error_msg):
-        """Show a result dialog after single package submit."""
         if success:
             self.status_label.set_text(_("Sent successfully!"))
             dialog = Adw.MessageDialog(
@@ -806,8 +993,9 @@ class MainWindow(Adw.ApplicationWindow):
             dialog.set_default_response("ok")
         dialog.present()
 
+    # --- Queue management ---
+
     def _on_add_to_queue(self, *_args):
-        """Add current translation to the send queue."""
         if not self.current_pkg:
             return
 
@@ -823,7 +1011,6 @@ class MainWindow(Adw.ApplicationWindow):
 
         pkg = self.current_pkg
 
-        # Check if already in queue
         for item in self._queue:
             if item.package == pkg["package"] and item.md5 == pkg["md5"]:
                 item.short = short
@@ -834,6 +1021,7 @@ class MainWindow(Adw.ApplicationWindow):
                 self._modified_packages.discard(pkg["package"])
                 self._update_queue_badge()
                 self._refresh_pkg_list_flags()
+                self._update_status_bar()
                 self.status_label.set_text(_("Updated {pkg} in queue").format(pkg=pkg["package"]))
                 _log_event(f"Updated {pkg['package']} in queue")
                 return
@@ -843,15 +1031,20 @@ class MainWindow(Adw.ApplicationWindow):
         self._modified_packages.discard(pkg["package"])
         self._update_queue_badge()
         self._refresh_pkg_list_flags()
+        self._update_status_bar()
         self.status_label.set_text(_("Added {pkg} to queue ({n} total)").format(
             pkg=pkg["package"], n=len(self._queue)))
         _log_event(f"Added {pkg['package']} to queue")
 
+        settings = load_settings()
+        if settings.get("auto_advance", True):
+            self._advance_to_next_package()
+
     def _clear_sent(self, *_args):
-        """Remove all sent items from the queue."""
         self._queue = [q for q in self._queue if q.status != QueueItem.STATUS_SENT]
         _save_queue(self._queue)
         self._update_queue_badge()
+        self._update_status_bar()
 
     def _on_sort_queue(self, *_args):
         self._queue.sort(key=lambda q: q.package.lower())
@@ -862,9 +1055,9 @@ class MainWindow(Adw.ApplicationWindow):
         self._queue = [q for q in self._queue if q.status == QueueItem.STATUS_SENDING]
         _save_queue(self._queue)
         self._update_queue_badge()
+        self._update_status_bar()
 
     def _update_queue_badge(self):
-        """Update the queue badge in the header bar."""
         ready_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_READY)
         error_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_ERROR)
         sent_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_SENT)
@@ -877,7 +1070,7 @@ class MainWindow(Adw.ApplicationWindow):
                 parts.append(f"✅ {sent_count}")
             if error_count:
                 parts.append(f"⚠ {error_count}")
-            self._queue_label.set_text(" ".join(parts) if parts else f"📬 0")
+            self._queue_label.set_text(" ".join(parts) if parts else "📬 0")
             self._queue_label.set_visible(True)
         else:
             self._queue_label.set_visible(False)
@@ -887,12 +1080,12 @@ class MainWindow(Adw.ApplicationWindow):
             removed = self._queue.pop(idx)
             _save_queue(self._queue)
             self._update_queue_badge()
+            self._update_status_bar()
             self.status_label.set_text(_("Removed {pkg} from queue").format(pkg=removed.package))
 
     # --- Queue dialog ---
 
     def _on_show_queue_dialog(self, *_args):
-        """Show queue as a popup dialog."""
         dialog = Adw.Window(
             transient_for=self,
             title=_("Send Queue"),
@@ -902,8 +1095,6 @@ class MainWindow(Adw.ApplicationWindow):
         )
 
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
-        # Header bar for the dialog
         header = Adw.HeaderBar()
         main_box.append(header)
 
@@ -911,7 +1102,6 @@ class MainWindow(Adw.ApplicationWindow):
         sort_btn.connect("clicked", lambda b: self._on_sort_queue_and_refresh_dialog(dialog))
         header.pack_start(sort_btn)
 
-        # Queue list
         scroll = Gtk.ScrolledWindow(vexpand=True)
         queue_list = Gtk.ListBox()
         queue_list.set_selection_mode(Gtk.SelectionMode.NONE)
@@ -920,12 +1110,9 @@ class MainWindow(Adw.ApplicationWindow):
 
         self._populate_queue_list(queue_list, dialog)
 
-        # Summary + buttons
         ready_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_READY)
         error_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_ERROR)
         sent_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_SENT)
-
-        eta = ""
 
         parts = []
         if ready_count:
@@ -936,7 +1123,7 @@ class MainWindow(Adw.ApplicationWindow):
             parts.append(_("{n} errors").format(n=error_count))
 
         info_label = Gtk.Label(
-            label=", ".join(parts) + eta if parts else _("Queue is empty"),
+            label=", ".join(parts) if parts else _("Queue is empty"),
             xalign=0,
         )
         info_label.add_css_class("dim-label")
@@ -973,7 +1160,6 @@ class MainWindow(Adw.ApplicationWindow):
         dialog.present()
 
     def _populate_queue_list(self, queue_list, dialog):
-        """Populate a ListBox with queue items."""
         for i, item in enumerate(self._queue):
             row_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
             row_box.set_margin_start(8)
@@ -1000,7 +1186,6 @@ class MainWindow(Adw.ApplicationWindow):
                 name_label.set_tooltip_text(item.error_msg)
             row_box.append(name_label)
 
-            # Status text for errors
             if item.status == QueueItem.STATUS_ERROR:
                 err_label = Gtk.Label(label=_("Error"))
                 err_label.add_css_class("error")
@@ -1024,7 +1209,6 @@ class MainWindow(Adw.ApplicationWindow):
     # --- Review dialog ---
 
     def _on_open_review(self, *_args):
-        """Open the review dialog — list pending reviews from DDTSS."""
         settings = load_settings()
         if not settings.get("ddtss_alias"):
             self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
@@ -1038,6 +1222,7 @@ class MainWindow(Adw.ApplicationWindow):
                 client = DDTSSClient(lang=lang)
                 if not client.is_logged_in():
                     client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
+                self._ddtss_logged_in = True
                 reviews = client.get_pending_reviews()
                 GLib.idle_add(self._show_review_list, reviews, lang, settings)
             except Exception as exc:
@@ -1046,8 +1231,17 @@ class MainWindow(Adw.ApplicationWindow):
         threading.Thread(target=fetch, daemon=True).start()
 
     def _show_review_list(self, reviews, lang, settings):
-        """Show dialog with list of pending reviews."""
         self.status_label.set_text("")
+
+        pending = [r for r in reviews if not r.get("reviewed_by_you")]
+        reviewed = [r for r in reviews if r.get("reviewed_by_you")]
+
+        # Update review badge
+        if pending:
+            self._review_badge.set_text(f"🔍 {len(pending)}")
+            self._review_badge.set_visible(True)
+        else:
+            self._review_badge.set_visible(False)
 
         dialog = Adw.Window(
             transient_for=self,
@@ -1059,7 +1253,17 @@ class MainWindow(Adw.ApplicationWindow):
 
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header = Adw.HeaderBar()
+
+        if pending:
+            accept_all_btn = Gtk.Button(label=_("Accept All ({n})").format(n=len(pending)))
+            accept_all_btn.add_css_class("suggested-action")
+            accept_all_btn.connect("clicked", lambda b: self._on_accept_all_reviews(
+                pending, lang, settings, dialog))
+            header.pack_end(accept_all_btn)
+
         main_box.append(header)
+
+        self._current_reviews = reviews
 
         if not reviews:
             empty = Adw.StatusPage(
@@ -1072,10 +1276,6 @@ class MainWindow(Adw.ApplicationWindow):
             dialog.present()
             return
 
-        # Split into pending and already reviewed
-        pending = [r for r in reviews if not r.get("reviewed_by_you")]
-        reviewed = [r for r in reviews if r.get("reviewed_by_you")]
-
         scroll = Gtk.ScrolledWindow(vexpand=True)
         list_box = Gtk.ListBox()
         list_box.set_selection_mode(Gtk.SelectionMode.NONE)
@@ -1087,38 +1287,28 @@ class MainWindow(Adw.ApplicationWindow):
         main_box.append(scroll)
 
         if pending:
-            header_row = Gtk.Label(label=_("Pending review ({n})").format(n=len(pending)),
-                                   xalign=0)
+            header_row = Gtk.Label(label=_("Pending review ({n})").format(n=len(pending)), xalign=0)
             header_row.add_css_class("title-4")
             header_row.set_margin_start(16)
             header_row.set_margin_top(8)
             list_box.append(header_row)
 
             for r in pending:
-                row = Adw.ActionRow(
-                    title=r["package"],
-                    subtitle=r.get("note", ""),
-                    activatable=True,
-                )
+                row = Adw.ActionRow(title=r["package"], subtitle=r.get("note", ""), activatable=True)
                 row.add_suffix(Gtk.Image.new_from_icon_name("go-next-symbolic"))
                 row.connect("activated", lambda w, pkg=r["package"]: (
                     dialog.close(), self._open_review_detail(pkg, lang, settings)))
                 list_box.append(row)
 
         if reviewed:
-            header_row2 = Gtk.Label(label=_("Reviewed by you ({n})").format(n=len(reviewed)),
-                                    xalign=0)
+            header_row2 = Gtk.Label(label=_("Reviewed by you ({n})").format(n=len(reviewed)), xalign=0)
             header_row2.add_css_class("title-4")
             header_row2.set_margin_start(16)
             header_row2.set_margin_top(12)
             list_box.append(header_row2)
 
             for r in reviewed:
-                row = Adw.ActionRow(
-                    title=r["package"],
-                    subtitle=r.get("note", ""),
-                    activatable=True,
-                )
+                row = Adw.ActionRow(title=r["package"], subtitle=r.get("note", ""), activatable=True)
                 row.add_prefix(Gtk.Image.new_from_icon_name("emblem-ok-symbolic"))
                 row.add_suffix(Gtk.Image.new_from_icon_name("go-next-symbolic"))
                 row.connect("activated", lambda w, pkg=r["package"]: (
@@ -1138,8 +1328,51 @@ class MainWindow(Adw.ApplicationWindow):
         dialog.set_content(main_box)
         dialog.present()
 
+    def _on_accept_all_reviews(self, pending, lang, settings, parent_dialog):
+        confirm = Adw.MessageDialog(
+            transient_for=self,
+            heading=_("Accept all {n} reviews?").format(n=len(pending)),
+            body=_("This will accept all pending translations as-is. This cannot be undone."),
+        )
+        confirm.add_response("cancel", _("Cancel"))
+        confirm.add_response("accept", _("Accept All"))
+        confirm.set_response_appearance("accept", Adw.ResponseAppearance.SUGGESTED)
+        confirm.set_default_response("cancel")
+
+        def on_response(d, response):
+            d.close()
+            if response == "accept":
+                parent_dialog.close()
+                self._batch_accept_reviews(pending, lang, settings)
+
+        confirm.connect("response", on_response)
+        confirm.present()
+
+    def _batch_accept_reviews(self, pending, lang, settings):
+        self.status_label.set_text(_("Accepting {n} reviews…").format(n=len(pending)))
+
+        def do_accept():
+            accepted = 0
+            errors = 0
+            for r in pending:
+                try:
+                    client = DDTSSClient(lang=lang)
+                    if not client.is_logged_in():
+                        client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
+                    data = client.get_review_page(r["package"])
+                    client.submit_review(
+                        r["package"], action="accept",
+                        short=data["short_trans"], long=data["long_trans"], comment="")
+                    accepted += 1
+                except Exception:
+                    errors += 1
+            msg = _("Accepted {accepted} reviews, {errors} errors").format(
+                accepted=accepted, errors=errors)
+            GLib.idle_add(self.status_label.set_text, msg)
+
+        threading.Thread(target=do_accept, daemon=True).start()
+
     def _open_review_detail(self, package, lang, settings):
-        """Open the review detail view for a single package."""
         self.status_label.set_text(_("Loading review for {pkg}…").format(pkg=package))
 
         def fetch():
@@ -1155,7 +1388,6 @@ class MainWindow(Adw.ApplicationWindow):
         threading.Thread(target=fetch, daemon=True).start()
 
     def _show_review_detail(self, data, lang, settings):
-        """Show the review detail dialog for a single package."""
         self.status_label.set_text("")
 
         dialog = Adw.Window(
@@ -1169,12 +1401,56 @@ class MainWindow(Adw.ApplicationWindow):
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         header = Adw.HeaderBar()
 
-        # Back button to return to review list
         back_btn = Gtk.Button(icon_name="go-previous-symbolic", tooltip_text=_("Back to list"))
         back_btn.connect("clicked", lambda b: (dialog.close(), self._on_open_review()))
         header.pack_start(back_btn)
 
+        # Navigation buttons
+        nav_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        prev_review_btn = Gtk.Button(icon_name="go-previous-symbolic", tooltip_text=_("Previous review (Ctrl+P)"))
+        next_review_btn = Gtk.Button(icon_name="go-next-symbolic", tooltip_text=_("Next review (Ctrl+N)"))
+
+        def go_next_review(_b):
+            reviews = getattr(self, '_current_reviews', [])
+            pending = [r for r in reviews if not r.get("reviewed_by_you")]
+            pkg_name = data["package"]
+            idx = next((i for i, r in enumerate(pending) if r["package"] == pkg_name), -1)
+            if idx >= 0 and idx + 1 < len(pending):
+                dialog.close()
+                self._open_review_detail(pending[idx + 1]["package"], lang, settings)
+
+        def go_prev_review(_b):
+            reviews = getattr(self, '_current_reviews', [])
+            pending = [r for r in reviews if not r.get("reviewed_by_you")]
+            pkg_name = data["package"]
+            idx = next((i for i, r in enumerate(pending) if r["package"] == pkg_name), -1)
+            if idx > 0:
+                dialog.close()
+                self._open_review_detail(pending[idx - 1]["package"], lang, settings)
+
+        prev_review_btn.connect("clicked", go_prev_review)
+        next_review_btn.connect("clicked", go_next_review)
+        nav_box.append(prev_review_btn)
+        nav_box.append(next_review_btn)
+        header.pack_start(nav_box)
+
         main_box.append(header)
+
+        # Keyboard shortcuts for review navigation
+        key_ctrl = Gtk.EventControllerKey()
+
+        def on_key_pressed(ctrl, keyval, keycode, state):
+            if state & Gdk.ModifierType.CONTROL_MASK:
+                if keyval == Gdk.KEY_n:
+                    go_next_review(None)
+                    return True
+                elif keyval == Gdk.KEY_p:
+                    go_prev_review(None)
+                    return True
+            return False
+
+        key_ctrl.connect("key-pressed", on_key_pressed)
+        dialog.add_controller(key_ctrl)
 
         scroll = Gtk.ScrolledWindow(vexpand=True)
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -1185,16 +1461,11 @@ class MainWindow(Adw.ApplicationWindow):
         scroll.set_child(content)
         main_box.append(scroll)
 
-        # Owner info
         if data.get("owner"):
-            owner_label = Gtk.Label(
-                label=_("Owner: {owner}").format(owner=data["owner"]),
-                xalign=0,
-            )
+            owner_label = Gtk.Label(label=_("Owner: {owner}").format(owner=data["owner"]), xalign=0)
             owner_label.add_css_class("dim-label")
             content.append(owner_label)
 
-        # --- Original short ---
         orig_short_label = Gtk.Label(label=_("Original short description"), xalign=0)
         orig_short_label.add_css_class("title-4")
         content.append(orig_short_label)
@@ -1204,7 +1475,6 @@ class MainWindow(Adw.ApplicationWindow):
         orig_short.add_css_class("monospace")
         content.append(orig_short)
 
-        # --- Translated short (editable) ---
         trans_short_label = Gtk.Label(label=_("Translated short description"), xalign=0)
         trans_short_label.add_css_class("title-4")
         content.append(trans_short_label)
@@ -1213,7 +1483,6 @@ class MainWindow(Adw.ApplicationWindow):
         short_entry.set_text(data["short_trans"])
         content.append(short_entry)
 
-        # --- Original long ---
         orig_long_label = Gtk.Label(label=_("Original long description"), xalign=0)
         orig_long_label.add_css_class("title-4")
         content.append(orig_long_label)
@@ -1223,7 +1492,6 @@ class MainWindow(Adw.ApplicationWindow):
         orig_long.add_css_class("monospace")
         content.append(orig_long)
 
-        # --- Translated long (editable) ---
         trans_long_label = Gtk.Label(label=_("Translated long description"), xalign=0)
         trans_long_label.add_css_class("title-4")
         content.append(trans_long_label)
@@ -1237,7 +1505,6 @@ class MainWindow(Adw.ApplicationWindow):
         long_frame.set_child(long_view)
         content.append(long_frame)
 
-        # --- Comment ---
         comment_label = Gtk.Label(label=_("Comment (optional)"), xalign=0)
         comment_label.add_css_class("title-4")
         content.append(comment_label)
@@ -1250,7 +1517,6 @@ class MainWindow(Adw.ApplicationWindow):
         comment_frame.set_child(comment_view)
         content.append(comment_frame)
 
-        # --- Log ---
         if data.get("log"):
             log_label = Gtk.Label(label=_("Log"), xalign=0)
             log_label.add_css_class("title-4")
@@ -1261,7 +1527,6 @@ class MainWindow(Adw.ApplicationWindow):
             log_text.add_css_class("dim-label")
             content.append(log_text)
 
-        # --- Action buttons ---
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         btn_box.set_halign(Gtk.Align.END)
         btn_box.set_margin_top(12)
@@ -1320,12 +1585,10 @@ class MainWindow(Adw.ApplicationWindow):
         btn_box.append(accept_btn)
 
         content.append(btn_box)
-
         dialog.set_content(main_box)
         dialog.present()
 
     def _show_review_result(self, package, action, success, error_msg):
-        """Show result dialog after review action."""
         if success:
             if action == "accept":
                 msg = _("Translation for \"{pkg}\" accepted.")
@@ -1354,7 +1617,6 @@ class MainWindow(Adw.ApplicationWindow):
     # --- Statistics dialog ---
 
     def _on_show_stats(self, *_args):
-        """Show DDTP statistics dialog."""
         self.status_label.set_text(_("Fetching statistics…"))
 
         def do_fetch():
@@ -1378,10 +1640,7 @@ class MainWindow(Adw.ApplicationWindow):
         prev_trans = lang_stats.get("previously_translated", 0)
         total_trans = lang_stats.get("total_translations", 0)
 
-        if active_pkgs > 0:
-            pct = (active_trans / active_pkgs) * 100
-        else:
-            pct = 0
+        pct = (active_trans / active_pkgs) * 100 if active_pkgs > 0 else 0
 
         lang_name = lang
         for code, name in DDTP_LANGUAGES:
@@ -1417,7 +1676,6 @@ class MainWindow(Adw.ApplicationWindow):
     # --- Lint ---
 
     def _on_lint(self, *_args):
-        """Lint the current translation using l10n-lint."""
         import shutil
         import subprocess
         import tempfile
@@ -1449,7 +1707,6 @@ class MainWindow(Adw.ApplicationWindow):
             dialog.present()
             return
 
-        # Build a minimal PO file for linting
         pkg = self.current_pkg
         lang = self._current_lang()
         lines = text.split("\n", 1)
@@ -1472,7 +1729,6 @@ class MainWindow(Adw.ApplicationWindow):
         def do_lint():
             try:
                 with tempfile.NamedTemporaryFile(mode="w", suffix=".po", delete=False, encoding="utf-8") as f:
-                    # Write a minimal PO header
                     f.write(f'msgid ""\nmsgstr ""\n"Language: {lang}\\n"\n'
                             f'"Content-Type: text/plain; charset=UTF-8\\n"\n\n')
                     f.write(po_content)
@@ -1514,20 +1770,19 @@ class MainWindow(Adw.ApplicationWindow):
         dialog.connect("response", lambda d, r: d.close())
         dialog.present()
 
-    # --- Batch send with confirmation ---
+    # --- Batch send ---
 
     def _on_send_queue(self, *_args):
-        """Send all ready items in the queue (with confirmation)."""
         ready = [q for q in self._queue if q.status == QueueItem.STATUS_READY]
         if not ready:
             return
 
         settings = load_settings()
-        total = len(ready)
-
         if not settings.get("ddtss_alias"):
             self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
             return
+
+        total = len(ready)
         dialog = Adw.MessageDialog(
             transient_for=self,
             heading=_("Submit {n} translations via DDTSS?").format(n=total),
@@ -1539,7 +1794,6 @@ class MainWindow(Adw.ApplicationWindow):
                 "• Any errors will be shown per package"
             ).format(n=total),
         )
-
         dialog.add_response("cancel", _("Cancel"))
         dialog.add_response("send", _("Submit All"))
         dialog.set_response_appearance("send", Adw.ResponseAppearance.SUGGESTED)
@@ -1554,11 +1808,9 @@ class MainWindow(Adw.ApplicationWindow):
         dialog.present()
 
     def _start_batch_send(self):
-        """Start sending all ready items in the queue."""
         self._batch_running = True
         self._batch_cancel = False
 
-        # Show a progress dialog
         self._batch_dialog = Adw.Window(
             transient_for=self,
             title=_("Sending Translations"),
@@ -1573,26 +1825,18 @@ class MainWindow(Adw.ApplicationWindow):
         dialog_box.set_margin_top(24)
         dialog_box.set_margin_bottom(24)
 
-        # Header
         self._batch_heading = Gtk.Label(label=_("Sending translations…"))
         self._batch_heading.add_css_class("title-2")
         dialog_box.append(self._batch_heading)
 
-        # Overall progress
         self._batch_progress = Gtk.ProgressBar()
         self._batch_progress.set_show_text(True)
         dialog_box.append(self._batch_progress)
 
-        # Current package
         self._batch_current = Gtk.Label(label="", xalign=0)
         self._batch_current.add_css_class("dim-label")
         dialog_box.append(self._batch_current)
 
-        # Countdown
-        self._batch_countdown = Gtk.Label(label="", xalign=0)
-        dialog_box.append(self._batch_countdown)
-
-        # Log
         log_scroll = Gtk.ScrolledWindow(vexpand=True)
         self._batch_log_buf = Gtk.TextBuffer()
         log_view = Gtk.TextView(buffer=self._batch_log_buf, editable=False, wrap_mode=Gtk.WrapMode.WORD)
@@ -1600,7 +1844,6 @@ class MainWindow(Adw.ApplicationWindow):
         log_scroll.set_child(log_view)
         dialog_box.append(log_scroll)
 
-        # Buttons
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         btn_box.set_halign(Gtk.Align.END)
 
@@ -1619,11 +1862,9 @@ class MainWindow(Adw.ApplicationWindow):
         self._batch_dialog.set_content(dialog_box)
         self._batch_dialog.present()
 
-        # Start sending in background
         threading.Thread(target=self._batch_send_worker, daemon=True).start()
 
     def _batch_log(self, text):
-        """Append text to the batch log."""
         def do_log():
             end = self._batch_log_buf.get_end_iter()
             self._batch_log_buf.insert(end, text + "\n")
@@ -1632,10 +1873,9 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_batch_cancel(self, *_args):
         self._batch_cancel = True
         self._batch_cancel_btn.set_sensitive(False)
-        self._batch_log(_("⏸ Cancelling after current submission…"))
+        self._batch_log(_("⏸ Cancelling…"))
 
     def _batch_send_worker(self):
-        """Background worker that sends queued translations."""
         settings = load_settings()
         lang = self._current_lang()
 
@@ -1662,15 +1902,18 @@ class MainWindow(Adw.ApplicationWindow):
                 if not client.is_logged_in():
                     client.login(settings.get("ddtss_alias", ""), settings.get("ddtss_password", ""))
                 client.submit_translation(item.package, item.short, item.long_text)
+                self._ddtss_logged_in = True
                 item.status = QueueItem.STATUS_SENT
                 sent += 1
                 self._submitted_packages.add(item.package)
                 self._modified_packages.discard(item.package)
+                self._error_packages.discard(item.package)
                 self._batch_log(f"✅ {item.package}")
             except Exception as exc:
                 item.status = QueueItem.STATUS_ERROR
                 item.error_msg = str(exc)
                 errors += 1
+                self._error_packages.add(item.package)
                 self._batch_log(f"❌ {item.package}: {exc}")
 
             _save_queue(self._queue)
@@ -1678,7 +1921,6 @@ class MainWindow(Adw.ApplicationWindow):
             GLib.idle_add(self._update_queue_badge)
             GLib.idle_add(self._batch_progress.set_fraction, (i + 1) / total)
 
-        # Keep sent items in queue (shown with green checkmark) — don't re-send them
         _save_queue(self._queue)
 
         self._batch_running = False
@@ -1694,17 +1936,16 @@ class MainWindow(Adw.ApplicationWindow):
             heading = "⚠️ " + _("{sent} sent, {errors} failed").format(sent=sent, errors=errors)
         GLib.idle_add(self._batch_heading.set_text, heading)
         GLib.idle_add(self._batch_current.set_text, summary)
-        GLib.idle_add(self._batch_countdown.set_text, "")
         GLib.idle_add(self._batch_cancel_btn.set_sensitive, False)
         GLib.idle_add(self._batch_close_btn.set_sensitive, True)
         GLib.idle_add(self._update_queue_badge)
         GLib.idle_add(self._refresh_pkg_list_flags)
+        GLib.idle_add(self._update_status_bar)
         GLib.idle_add(self.status_label.set_text, summary)
 
     # --- Close confirmation ---
 
     def _on_close_request(self, *_args):
-        """Show confirmation dialog if there are unsent items or modifications."""
         ready_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_READY)
         modified_count = len(self._modified_packages)
 
@@ -1715,7 +1956,7 @@ class MainWindow(Adw.ApplicationWindow):
             warnings.append(_("{n} translation(s) modified but not added to queue").format(n=modified_count))
 
         if not warnings:
-            return False  # Allow close
+            return False
 
         dialog = Adw.MessageDialog(
             transient_for=self,
@@ -1735,15 +1976,114 @@ class MainWindow(Adw.ApplicationWindow):
 
         dialog.connect("response", on_response)
         dialog.present()
-        return True  # Prevent close (dialog handles it)
+        return True
 
-    # --- PO Export/Import ---
+    # --- PO Export with Filter Dialog ---
 
     def _on_export_po(self, *_args):
-        if not self.packages:
+        export_pkgs = getattr(self, '_all_packages', self.packages)
+        if not export_pkgs:
             self.status_label.set_text(_("No packages loaded to export"))
             return
 
+        filter_dialog = Adw.Window(
+            transient_for=self,
+            title=_("Export PO — Filter"),
+            default_width=450,
+            default_height=400,
+            modal=True,
+        )
+
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        fheader = Adw.HeaderBar()
+        main_box.append(fheader)
+
+        content = Adw.PreferencesPage()
+
+        filter_group = Adw.PreferencesGroup(
+            title=_("Filter Options"),
+            description=_("Narrow down which packages to export."),
+        )
+
+        max_spin = Adw.SpinRow.new_with_range(0, len(export_pkgs), 10)
+        max_spin.set_title(_("Max number of packages (0 = all)"))
+        max_spin.set_value(0)
+        filter_group.add(max_spin)
+
+        letter_row = Adw.EntryRow(title=_("Starting letter"))
+        letter_row.set_text("")
+        filter_group.add(letter_row)
+
+        regex_row = Adw.EntryRow(title=_("Regex filter"))
+        regex_row.set_text("")
+        filter_group.add(regex_row)
+
+        content.add(filter_group)
+
+        preview_group = Adw.PreferencesGroup()
+        preview_label = Gtk.Label(
+            label=_("Matching: {x} of {y} packages").format(x=len(export_pkgs), y=len(export_pkgs)),
+            xalign=0,
+        )
+        preview_label.add_css_class("dim-label")
+        preview_label.set_margin_start(12)
+        preview_label.set_margin_top(8)
+        preview_group.add(preview_label)
+        content.add(preview_group)
+
+        main_box.append(content)
+
+        def compute_filtered():
+            pkgs = export_pkgs
+            letter = letter_row.get_text().strip().lower()
+            if letter:
+                pkgs = [p for p in pkgs if p["package"].lower().startswith(letter)]
+            regex_text = regex_row.get_text().strip()
+            if regex_text:
+                try:
+                    pattern = re.compile(regex_text)
+                    pkgs = [p for p in pkgs if pattern.search(p["package"])]
+                except re.error:
+                    pass
+            max_n = int(max_spin.get_value())
+            if max_n > 0:
+                pkgs = pkgs[:max_n]
+            return pkgs
+
+        def update_preview(*_args):
+            filtered = compute_filtered()
+            preview_label.set_text(
+                _("Matching: {x} of {y} packages").format(x=len(filtered), y=len(export_pkgs)))
+
+        max_spin.connect("notify::value", update_preview)
+        letter_row.connect("changed", update_preview)
+        regex_row.connect("changed", update_preview)
+
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_box.set_halign(Gtk.Align.END)
+        btn_box.set_margin_start(12)
+        btn_box.set_margin_end(12)
+        btn_box.set_margin_top(8)
+        btn_box.set_margin_bottom(12)
+
+        cancel_btn = Gtk.Button(label=_("Cancel"))
+        cancel_btn.connect("clicked", lambda b: filter_dialog.close())
+        btn_box.append(cancel_btn)
+
+        do_export_btn = Gtk.Button(label=_("Export"))
+        do_export_btn.add_css_class("suggested-action")
+        do_export_btn.connect("clicked", lambda b: (
+            setattr(self, '_export_pkgs_pending', compute_filtered()),
+            filter_dialog.close(),
+            self._open_export_save_dialog(),
+        ))
+        btn_box.append(do_export_btn)
+
+        main_box.append(btn_box)
+        filter_dialog.set_content(main_box)
+        filter_dialog.present()
+
+    def _open_export_save_dialog(self):
         lang = self._current_lang()
         dialog = Gtk.FileDialog()
         dialog.set_initial_name(f"ddtp-{lang}.po")
@@ -1763,7 +2103,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         path = gfile.get_path()
         lang = self._current_lang()
-        export_pkgs = getattr(self, '_all_packages', self.packages)
+        export_pkgs = getattr(self, '_export_pkgs_pending', self.packages)
         lines = [
             '# DDTP translations export',
             f'# Language: {lang}',
@@ -1812,6 +2152,8 @@ class MainWindow(Adw.ApplicationWindow):
                 parts.append(f'"{escaped}"')
         return '\n'.join(parts)
 
+    # --- PO Import with Review Window ---
+
     def _on_import_po(self, *_args):
         dialog = Gtk.FileDialog()
         fil = Gtk.FileFilter()
@@ -1835,7 +2177,215 @@ class MainWindow(Adw.ApplicationWindow):
             self.status_label.set_text(_("No translated entries found in file (only entries with translations are imported)"))
             return
 
-        # Add all to queue
+        self._show_import_review(translations)
+
+    def _show_import_review(self, translations):
+        """Show import review window with lint results."""
+        import shutil
+
+        review_win = Adw.Window(
+            transient_for=self,
+            title=_("Import Review — {n} translations").format(n=len(translations)),
+            default_width=800,
+            default_height=600,
+            modal=True,
+        )
+
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        header = Adw.HeaderBar()
+        main_box.append(header)
+
+        content_paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        content_paned.set_vexpand(True)
+
+        # Left: list
+        left_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        left_box.set_size_request(300, -1)
+
+        scroll = Gtk.ScrolledWindow(vexpand=True)
+        list_box = Gtk.ListBox()
+        list_box.set_selection_mode(Gtk.SelectionMode.MULTIPLE)
+        scroll.set_child(list_box)
+        left_box.append(scroll)
+
+        content_paned.set_start_child(left_box)
+
+        # Right: detail
+        detail_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        detail_box.set_margin_start(12)
+        detail_box.set_margin_end(12)
+        detail_box.set_margin_top(8)
+        detail_box.set_margin_bottom(8)
+
+        detail_title = Gtk.Label(label=_("Select a translation to preview"), xalign=0)
+        detail_title.add_css_class("title-4")
+        detail_box.append(detail_title)
+
+        detail_scroll = Gtk.ScrolledWindow(vexpand=True)
+        detail_view = Gtk.TextView(editable=True, wrap_mode=Gtk.WrapMode.WORD)
+        detail_view.add_css_class("monospace")
+        detail_scroll.set_child(detail_view)
+        detail_box.append(detail_scroll)
+
+        content_paned.set_end_child(detail_box)
+        main_box.append(content_paned)
+
+        has_lint = shutil.which("l10n-lint") is not None
+
+        for i, (pkg, md5, short, long_text) in enumerate(translations):
+            row_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            row_box.set_margin_start(8)
+            row_box.set_margin_end(8)
+            row_box.set_margin_top(4)
+            row_box.set_margin_bottom(4)
+
+            lint_icon = Gtk.Image.new_from_icon_name("content-loading-symbolic")
+            lint_icon.set_tooltip_text(_("Checking…"))
+            row_box.append(lint_icon)
+
+            name_label = Gtk.Label(label=pkg, xalign=0, hexpand=True)
+            name_label.set_ellipsize(Pango.EllipsizeMode.END)
+            row_box.append(name_label)
+
+            preview = short[:40] + "…" if len(short) > 40 else short
+            preview_lbl = Gtk.Label(label=preview, xalign=1)
+            preview_lbl.add_css_class("dim-label")
+            preview_lbl.set_ellipsize(Pango.EllipsizeMode.END)
+            row_box.append(preview_lbl)
+
+            list_box.append(row_box)
+
+        def on_row_selected(lb, row):
+            if row is None:
+                return
+            idx = row.get_index()
+            if 0 <= idx < len(translations):
+                pkg, md5, short, long_text = translations[idx]
+                detail_title.set_text(pkg)
+                text = short
+                if long_text:
+                    text += "\n\n" + long_text
+                detail_view.get_buffer().set_text(text)
+
+        list_box.connect("row-selected", on_row_selected)
+
+        if has_lint:
+            def run_lint_all():
+                import subprocess
+                import tempfile
+                lang = self._current_lang()
+                for i, (pkg, md5, short, long_text) in enumerate(translations):
+                    try:
+                        po_content = (
+                            f'msgid ""\nmsgstr ""\n"Language: {lang}\\n"\n'
+                            f'"Content-Type: text/plain; charset=UTF-8\\n"\n\n'
+                            f'msgid "{self._po_escape(short)}"\n'
+                            f'msgstr "{self._po_escape(short)}"\n'
+                        )
+                        with tempfile.NamedTemporaryFile(mode="w", suffix=".po", delete=False, encoding="utf-8") as f:
+                            f.write(po_content)
+                            tmp_path = f.name
+                        result = subprocess.run(
+                            ["l10n-lint", "--format", "text", tmp_path],
+                            capture_output=True, text=True, timeout=10,
+                        )
+                        os.unlink(tmp_path)
+                        lint_ok = result.returncode == 0
+                        GLib.idle_add(self._update_import_lint_icon, list_box, i, lint_ok)
+                    except Exception:
+                        GLib.idle_add(self._update_import_lint_icon, list_box, i, True)
+
+            threading.Thread(target=run_lint_all, daemon=True).start()
+        else:
+            info_label = Gtk.Label(
+                label=_("l10n-lint not installed — skipping lint checks"),
+                xalign=0,
+            )
+            info_label.add_css_class("dim-label")
+            info_label.set_margin_start(12)
+            info_label.set_margin_bottom(4)
+            main_box.append(info_label)
+            for i in range(len(translations)):
+                GLib.idle_add(self._update_import_lint_icon, list_box, i, True)
+
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_box.set_halign(Gtk.Align.END)
+        btn_box.set_margin_start(12)
+        btn_box.set_margin_end(12)
+        btn_box.set_margin_top(8)
+        btn_box.set_margin_bottom(12)
+
+        cancel_btn = Gtk.Button(label=_("Cancel"))
+        cancel_btn.connect("clicked", lambda b: review_win.close())
+        btn_box.append(cancel_btn)
+
+        add_selected_btn = Gtk.Button(label=_("Add Selected to Queue"))
+        add_selected_btn.connect("clicked", lambda b: (
+            self._import_selected_to_queue(list_box, translations),
+            review_win.close(),
+        ))
+        btn_box.append(add_selected_btn)
+
+        add_all_btn = Gtk.Button(label=_("Add All to Queue"))
+        add_all_btn.add_css_class("suggested-action")
+        add_all_btn.connect("clicked", lambda b: (
+            self._import_all_to_queue(translations),
+            review_win.close(),
+        ))
+        btn_box.append(add_all_btn)
+
+        main_box.append(btn_box)
+        review_win.set_content(main_box)
+        review_win.present()
+
+    def _update_import_lint_icon(self, list_box, idx, lint_ok):
+        row = list_box.get_row_at_index(idx)
+        if row is None:
+            return
+        row_box = row.get_child()
+        if row_box is None:
+            return
+        icon = row_box.get_first_child()
+        if icon and isinstance(icon, Gtk.Image):
+            if lint_ok:
+                icon.set_from_icon_name("emblem-ok-symbolic")
+                icon.set_tooltip_text(_("Lint OK ✅"))
+                icon.add_css_class("pkg-flag-submitted")
+            else:
+                icon.set_from_icon_name("dialog-warning-symbolic")
+                icon.set_tooltip_text(_("Lint issues ⚠️"))
+                icon.add_css_class("pkg-flag-modified")
+
+    def _import_selected_to_queue(self, list_box, translations):
+        selected_rows = list_box.get_selected_rows()
+        added = 0
+        updated = 0
+        for row in selected_rows:
+            idx = row.get_index()
+            if 0 <= idx < len(translations):
+                pkg, md5, short, long_text = translations[idx]
+                existing = None
+                for q in self._queue:
+                    if q.package == pkg and q.md5 == md5:
+                        existing = q
+                        break
+                if existing:
+                    existing.short = short
+                    existing.long_text = long_text
+                    existing.status = QueueItem.STATUS_READY
+                    existing.error_msg = ""
+                    updated += 1
+                else:
+                    self._queue.append(QueueItem(pkg, md5, short, long_text))
+                    added += 1
+        _save_queue(self._queue)
+        self._update_queue_badge()
+        self._update_status_bar()
+        self.status_label.set_text(
+            _("Imported {added} new, {updated} updated — {total} in queue").format(
+                added=added, updated=updated, total=len(self._queue)))
+
+    def _import_all_to_queue(self, translations):
         added = 0
         updated = 0
         for pkg, md5, short, long_text in translations:
@@ -1856,6 +2406,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         _save_queue(self._queue)
         self._update_queue_badge()
+        self._update_status_bar()
         self.status_label.set_text(
             _("Imported {added} new, {updated} updated — {total} in queue").format(
                 added=added, updated=updated, total=len(self._queue)))
@@ -1924,13 +2475,14 @@ class MainWindow(Adw.ApplicationWindow):
         if in_msgstr:
             flush()
 
-        # ONLY return entries with a non-empty short description
         return [(p, m, s, l) for p, m, s, l in translations if s]
 
     def _po_unescape_joined(self, parts):
         raw = ''.join(parts)
         return raw.replace('\\n', '\n').replace('\\"', '"').replace('\\\\', '\\')
 
+
+# --- Application ---
 
 class DDTPTranslateApp(Adw.Application):
     """Main application."""
@@ -1946,6 +2498,23 @@ class DDTPTranslateApp(Adw.Application):
         self.create_action("show-queue", self._on_show_queue_action)
         self.create_action("stats", self._on_stats_action)
         self.create_action("review", self._on_review_action)
+        self.create_action("shortcuts", self._on_shortcuts)
+        self.create_action("submit-now", self._on_submit_now_action)
+        self.create_action("add-to-queue", self._on_add_to_queue_action)
+        self.create_action("next-package", self._on_next_package_action)
+        self.create_action("prev-package", self._on_prev_package_action)
+        self.create_action("lint", self._on_lint_action)
+        self.create_action("refresh", self._on_refresh_action)
+        self.create_action("quit", self._on_quit_action)
+
+        # Keyboard shortcuts
+        self.set_accels_for_action("app.submit-now", ["<Control>Return"])
+        self.set_accels_for_action("app.add-to-queue", ["<Control><Shift>Return"])
+        self.set_accels_for_action("app.next-package", ["<Control>n"])
+        self.set_accels_for_action("app.prev-package", ["<Control>p"])
+        self.set_accels_for_action("app.lint", ["<Control>l"])
+        self.set_accels_for_action("app.refresh", ["F5"])
+        self.set_accels_for_action("app.quit", ["<Control>q"])
 
     def do_activate(self):
         win = self.props.active_window
@@ -1968,7 +2537,7 @@ class DDTPTranslateApp(Adw.Application):
                 "2. Browse packages that need translation\n"
                 "3. Write your translation in the editor\n"
                 "4. Add to queue or submit directly\n"
-                "5. Send the queue — translations are submitted via DDTSS\n\n"
+                "5. Send the queue — translations go to DDTSS\n\n"
                 "Tip: Export as PO, translate in your favorite editor, "
                 "then import back to queue many at once.\n\n"
                 "Before submitting, configure your DDTSS account in Preferences."
@@ -1991,6 +2560,8 @@ class DDTPTranslateApp(Adw.Application):
         action = Gio.SimpleAction(name=name)
         action.connect("activate", callback)
         self.add_action(action)
+
+    # --- Action handlers ---
 
     def _on_export_po_action(self, *_args):
         win = self.props.active_window
@@ -2022,6 +2593,39 @@ class DDTPTranslateApp(Adw.Application):
         if win:
             win._on_show_stats()
 
+    def _on_submit_now_action(self, *_args):
+        win = self.props.active_window
+        if win:
+            win._on_submit()
+
+    def _on_add_to_queue_action(self, *_args):
+        win = self.props.active_window
+        if win:
+            win._on_add_to_queue()
+
+    def _on_next_package_action(self, *_args):
+        win = self.props.active_window
+        if win:
+            win._advance_to_next_package()
+
+    def _on_prev_package_action(self, *_args):
+        win = self.props.active_window
+        if win:
+            win._go_to_prev_package()
+
+    def _on_lint_action(self, *_args):
+        win = self.props.active_window
+        if win:
+            win._on_lint()
+
+    def _on_refresh_action(self, *_args):
+        win = self.props.active_window
+        if win:
+            win._on_refresh()
+
+    def _on_quit_action(self, *_args):
+        self.quit()
+
     def _on_preferences(self, *_args):
         win = PreferencesWindow(self.props.active_window)
         win.present()
@@ -2042,6 +2646,55 @@ class DDTPTranslateApp(Adw.Application):
             comments=_("Translate Debian package descriptions via DDTP"),
         )
         about.present(self.props.active_window)
+
+    def _on_shortcuts(self, *_args):
+        """Show the keyboard shortcuts window."""
+        shortcuts_win = Gtk.ShortcutsWindow(
+            transient_for=self.props.active_window,
+            modal=True,
+        )
+
+        section = Gtk.ShortcutsSection(section_name="shortcuts", title=_("Shortcuts"))
+        section.set_visible(True)
+
+        trans_group = Gtk.ShortcutsGroup(title=_("Translation"))
+        trans_group.set_visible(True)
+        for title, accel in [
+            (_("Submit current translation"), "<Control>Return"),
+            (_("Add to queue"), "<Control><Shift>Return"),
+            (_("Lint translation"), "<Control>l"),
+            (_("Refresh packages"), "F5"),
+        ]:
+            sc = Gtk.ShortcutsShortcut(title=title, accelerator=accel)
+            sc.set_visible(True)
+            trans_group.append(sc)
+        section.append(trans_group)
+
+        nav_group = Gtk.ShortcutsGroup(title=_("Navigation"))
+        nav_group.set_visible(True)
+        for title, accel in [
+            (_("Next package"), "<Control>n"),
+            (_("Previous package"), "<Control>p"),
+            (_("Focus search"), "<Control>f"),
+        ]:
+            sc = Gtk.ShortcutsShortcut(title=title, accelerator=accel)
+            sc.set_visible(True)
+            nav_group.append(sc)
+        section.append(nav_group)
+
+        app_group = Gtk.ShortcutsGroup(title=_("Application"))
+        app_group.set_visible(True)
+        for title, accel in [
+            (_("Quit"), "<Control>q"),
+            (_("Keyboard shortcuts"), "<Control>question"),
+        ]:
+            sc = Gtk.ShortcutsShortcut(title=title, accelerator=accel)
+            sc.set_visible(True)
+            app_group.append(sc)
+        section.append(app_group)
+
+        shortcuts_win.add_section(section)
+        shortcuts_win.present()
 
 
 def main():
