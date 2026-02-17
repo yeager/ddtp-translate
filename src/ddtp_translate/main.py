@@ -16,7 +16,7 @@ from gi.repository import Adw, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 
 from . import __version__
 from .ddtp_api import DDTP_LANGUAGES, fetch_untranslated, fetch_ddtp_stats
-from .smtp_sender import load_settings, save_settings, send_translation
+from .settings import load_settings, save_settings
 from .ddtss_client import (
     DDTSSClient, DDTSSError, DDTSSAuthError,
     DDTSSLockedError, DDTSSValidationError,
@@ -38,9 +38,6 @@ gettext.textdomain("ddtp-translate")
 _ = gettext.gettext
 
 APP_ID = "se.danielnylander.ddtp-translate"
-
-# Default email delay between submissions (seconds)
-DEFAULT_SEND_DELAY = 30
 
 # Queue persistence path
 def _data_dir():
@@ -127,7 +124,7 @@ def _setup_css():
 
 
 class PreferencesWindow(Adw.PreferencesWindow):
-    """SMTP and app settings."""
+    """Application settings."""
 
     def __init__(self, parent, **kwargs):
         super().__init__(
@@ -137,73 +134,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
         )
         self.settings = load_settings()
 
-        # SMTP page
-        smtp_page = Adw.PreferencesPage(title=_("SMTP"), icon_name="mail-send-symbolic")
-        smtp_group = Adw.PreferencesGroup(title=_("Mail Server"))
-
-        self.host_row = Adw.EntryRow(title=_("SMTP Host"))
-        self.host_row.set_text(self.settings.get("smtp_host", ""))
-        smtp_group.add(self.host_row)
-
-        self.port_row = Adw.EntryRow(title=_("SMTP Port"))
-        self.port_row.set_text(str(self.settings.get("smtp_port", 25)))
-        smtp_group.add(self.port_row)
-
-        self.user_row = Adw.EntryRow(title=_("Username"))
-        self.user_row.set_text(self.settings.get("smtp_user", ""))
-        smtp_group.add(self.user_row)
-
-        self.pass_row = Adw.PasswordEntryRow(title=_("Password"))
-        self.pass_row.set_text(self.settings.get("smtp_password", ""))
-        smtp_group.add(self.pass_row)
-
-        self.tls_row = Adw.SwitchRow(title=_("Use TLS"))
-        self.tls_row.set_active(self.settings.get("smtp_use_tls", False))
-        smtp_group.add(self.tls_row)
-
-        # Preset buttons
-        preset_group = Adw.PreferencesGroup(title=_("Quick Setup"))
-
-        gmail_btn = Gtk.Button(label=_("Use Gmail"))
-        gmail_btn.add_css_class("suggested-action")
-        gmail_btn.add_css_class("pill")
-        gmail_btn.set_margin_top(4)
-        gmail_btn.set_margin_bottom(4)
-        gmail_btn.connect("clicked", self._apply_gmail_preset)
-        preset_group.add(gmail_btn)
-
-        smtp_page.add(smtp_group)
-        smtp_page.add(preset_group)
-
-        # Identity
-        id_group = Adw.PreferencesGroup(title=_("Identity"))
-        self.name_row = Adw.EntryRow(title=_("Your Name"))
-        self.name_row.set_text(self.settings.get("from_name", ""))
-        id_group.add(self.name_row)
-
-        self.email_row = Adw.EntryRow(title=_("Your Email"))
-        self.email_row.set_text(self.settings.get("from_email", ""))
-        id_group.add(self.email_row)
-        smtp_page.add(id_group)
-
-        self.add(smtp_page)
-
-        # DDTSS page (web-based submission — recommended)
+        # DDTSS page
         ddtss_page = Adw.PreferencesPage(title=_("DDTSS"), icon_name="web-browser-symbolic")
-
-        method_group = Adw.PreferencesGroup(
-            title=_("Submission Method"),
-            description=_("DDTSS (web) is recommended. SMTP (email) is legacy and may not work."),
-        )
-        self.method_row = Adw.ComboRow(title=_("Submit via"))
-        method_model = Gtk.StringList()
-        method_model.append("DDTSS (web)")
-        method_model.append("SMTP (email)")
-        self.method_row.set_model(method_model)
-        current_method = self.settings.get("submit_method", "ddtss")
-        self.method_row.set_selected(0 if current_method == "ddtss" else 1)
-        method_group.add(self.method_row)
-        ddtss_page.add(method_group)
 
         ddtss_group = Adw.PreferencesGroup(
             title=_("DDTSS Account"),
@@ -229,19 +161,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
         ddtss_page.add(ddtss_group)
         self.add(ddtss_page)
 
-        # Sending page
-        send_page = Adw.PreferencesPage(title=_("Sending"), icon_name="preferences-system-time-symbolic")
-        send_group = Adw.PreferencesGroup(
-            title=_("Rate Limiting"),
-            description=_("Delay between email submissions to avoid flooding the DDTP server."),
-        )
-
-        self.delay_row = Adw.SpinRow.new_with_range(5, 300, 5)
-        self.delay_row.set_title(_("Delay between emails (seconds)"))
-        self.delay_row.set_value(self.settings.get("send_delay", DEFAULT_SEND_DELAY))
-        send_group.add(self.delay_row)
-
-        send_page.add(send_group)
+        # Display & settings page
+        settings_page = Adw.PreferencesPage(title=_("Settings"), icon_name="preferences-system-symbolic")
 
         # Max packages setting
         display_group = Adw.PreferencesGroup(
@@ -262,7 +183,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
             self.max_pkg_row.set_selected(0)
         display_group.add(self.max_pkg_row)
 
-        send_page.add(display_group)
+        settings_page.add(display_group)
 
         # Logging settings
         log_group = Adw.PreferencesGroup(
@@ -272,16 +193,11 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.logging_row = Adw.SwitchRow(title=_("Enable event logging"))
         self.logging_row.set_active(self.settings.get("enable_logging", False))
         log_group.add(self.logging_row)
-        send_page.add(log_group)
+        settings_page.add(log_group)
 
-        self.add(send_page)
+        self.add(settings_page)
 
         self.connect("close-request", self._on_close)
-
-    def _apply_gmail_preset(self, _btn):
-        self.host_row.set_text("smtp.gmail.com")
-        self.port_row.set_text("465")
-        self.tls_row.set_active(True)
 
     def _test_ddtss_login(self, btn):
         """Test DDTSS login credentials."""
@@ -309,17 +225,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
     def _on_close(self, *_args):
         self.settings.update(
             {
-                "submit_method": "ddtss" if self.method_row.get_selected() == 0 else "smtp",
                 "ddtss_alias": self.ddtss_alias_row.get_text(),
                 "ddtss_password": self.ddtss_pass_row.get_text(),
-                "smtp_host": self.host_row.get_text(),
-                "smtp_port": int(self.port_row.get_text() or 25),
-                "smtp_user": self.user_row.get_text(),
-                "smtp_password": self.pass_row.get_text(),
-                "smtp_use_tls": self.tls_row.get_active(),
-                "from_name": self.name_row.get_text(),
-                "from_email": self.email_row.get_text(),
-                "send_delay": int(self.delay_row.get_value()),
                 "max_packages": self._max_pkg_values[self.max_pkg_row.get_selected()],
                 "enable_logging": self.logging_row.get_active(),
             }
@@ -834,12 +741,8 @@ class MainWindow(Adw.ApplicationWindow):
             return
 
         settings = load_settings()
-        method = settings.get("submit_method", "ddtss")
 
-        if method == "smtp" and not settings.get("smtp_host"):
-            self.status_label.set_text(_("SMTP not configured — open Preferences first"))
-            return
-        if method == "ddtss" and not settings.get("ddtss_alias"):
+        if not settings.get("ddtss_alias"):
             self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
             return
 
@@ -854,13 +757,10 @@ class MainWindow(Adw.ApplicationWindow):
 
         def do_send():
             try:
-                if method == "ddtss":
-                    client = DDTSSClient(lang=lang)
-                    if not client.is_logged_in():
-                        client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
-                    client.submit_translation(pkg["package"], short, long_text)
-                else:
-                    send_translation(pkg["package"], pkg["md5"], lang, short, long_text)
+                client = DDTSSClient(lang=lang)
+                if not client.is_logged_in():
+                    client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
+                client.submit_translation(pkg["package"], short, long_text)
                 self._last_send_time = time.time()
                 self._submitted_packages.add(pkg["package"])
                 self._modified_packages.discard(pkg["package"])
@@ -1025,13 +925,7 @@ class MainWindow(Adw.ApplicationWindow):
         error_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_ERROR)
         sent_count = sum(1 for q in self._queue if q.status == QueueItem.STATUS_SENT)
 
-        settings = load_settings()
-        method = settings.get("submit_method", "ddtss")
-        if method == "ddtss":
-            eta = ""
-        else:
-            delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
-            eta = _(" — ETA: {eta}").format(eta=self._format_duration(ready_count * delay)) if ready_count > 0 else ""
+        eta = ""
 
         parts = []
         if ready_count:
@@ -1132,9 +1026,6 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_open_review(self, *_args):
         """Open the review dialog — list pending reviews from DDTSS."""
         settings = load_settings()
-        if settings.get("submit_method", "ddtss") != "ddtss":
-            self.status_label.set_text(_("Review requires DDTSS (not SMTP)"))
-            return
         if not settings.get("ddtss_alias"):
             self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
             return
@@ -1632,53 +1523,26 @@ class MainWindow(Adw.ApplicationWindow):
             return
 
         settings = load_settings()
-        method = settings.get("submit_method", "ddtss")
         total = len(ready)
 
-        if method == "ddtss":
-            if not settings.get("ddtss_alias"):
-                self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
-                return
-            dialog = Adw.MessageDialog(
-                transient_for=self,
-                heading=_("Submit {n} translations via DDTSS?").format(n=total),
-                body=_(
-                    "You are about to submit {n} translation(s) to the DDTSS web interface.\n\n"
-                    "• Translations are submitted directly via HTTP — no delay needed\n"
-                    "• Successfully submitted packages are marked with ✅\n"
-                    "• You can cancel the process at any time\n"
-                    "• Any errors will be shown per package"
-                ).format(n=total),
-            )
-        else:
-            if not settings.get("smtp_host"):
-                self.status_label.set_text(_("SMTP not configured — open Preferences first"))
-                return
-            delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
-            est_time = self._format_duration(total * delay)
-            dialog = Adw.MessageDialog(
-                transient_for=self,
-                heading=_("Send {n} translations to DDTP?").format(n=total),
-                body=_(
-                    "You are about to send {n} translation(s) to the Debian Description "
-                    "Translation Project (DDTP) via email.\n\n"
-                    "⚠️ Important information:\n\n"
-                    "• Each translation is sent as a separate email to pdesc@ddtp.debian.org\n"
-                    "• A delay of {delay} seconds is enforced between each email "
-                    "to prevent overloading the DDTP server\n"
-                    "• The DDTP server is run by volunteers — please be considerate\n"
-                    "• Estimated time: {time}\n"
-                    "• You can cancel the process at any time\n"
-                    "• Successfully sent translations cannot be recalled\n"
-                    "• Any SMTP errors will be shown per package\n\n"
-                    "The delay can be adjusted in Preferences → Sending.\n"
-                    "Make sure your SMTP settings and email address are correct."
-                ).format(n=total, delay=delay, time=est_time),
-            )
+        if not settings.get("ddtss_alias"):
+            self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
+            return
+        dialog = Adw.MessageDialog(
+            transient_for=self,
+            heading=_("Submit {n} translations via DDTSS?").format(n=total),
+            body=_(
+                "You are about to submit {n} translation(s) to the DDTSS web interface.\n\n"
+                "• Translations are submitted directly via HTTP — no delay needed\n"
+                "• Successfully submitted packages are marked with ✅\n"
+                "• You can cancel the process at any time\n"
+                "• Any errors will be shown per package"
+            ).format(n=total),
+        )
 
         dialog.add_response("cancel", _("Cancel"))
-        dialog.add_response("send", _("Submit All") if method == "ddtss" else _("I understand — Send All"))
-        dialog.set_response_appearance("send", Adw.ResponseAppearance.SUGGESTED if method == "ddtss" else Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.add_response("send", _("Submit All"))
+        dialog.set_response_appearance("send", Adw.ResponseAppearance.SUGGESTED)
         dialog.set_default_response("cancel")
 
         def on_response(d, response):
@@ -1768,12 +1632,11 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_batch_cancel(self, *_args):
         self._batch_cancel = True
         self._batch_cancel_btn.set_sensitive(False)
-        self._batch_log(_("⏸ Cancelling after current email…"))
+        self._batch_log(_("⏸ Cancelling after current submission…"))
 
     def _batch_send_worker(self):
         """Background worker that sends queued translations."""
         settings = load_settings()
-        delay = settings.get("send_delay", DEFAULT_SEND_DELAY)
         lang = self._current_lang()
 
         ready = [q for q in self._queue if q.status == QueueItem.STATUS_READY]
@@ -1795,14 +1658,10 @@ class MainWindow(Adw.ApplicationWindow):
             GLib.idle_add(self._batch_progress.set_text, f"{i + 1}/{total}")
 
             try:
-                method = settings.get("submit_method", "ddtss")
-                if method == "ddtss":
-                    client = DDTSSClient(lang=lang)
-                    if not client.is_logged_in():
-                        client.login(settings.get("ddtss_alias", ""), settings.get("ddtss_password", ""))
-                    client.submit_translation(item.package, item.short, item.long_text)
-                else:
-                    send_translation(item.package, item.md5, lang, item.short, item.long_text, settings)
+                client = DDTSSClient(lang=lang)
+                if not client.is_logged_in():
+                    client.login(settings.get("ddtss_alias", ""), settings.get("ddtss_password", ""))
+                client.submit_translation(item.package, item.short, item.long_text)
                 item.status = QueueItem.STATUS_SENT
                 sent += 1
                 self._submitted_packages.add(item.package)
@@ -1818,16 +1677,6 @@ class MainWindow(Adw.ApplicationWindow):
             _log_event(f"Batch: {item.package} -> {item.status}")
             GLib.idle_add(self._update_queue_badge)
             GLib.idle_add(self._batch_progress.set_fraction, (i + 1) / total)
-
-            # Rate limit delay for SMTP only (not needed for DDTSS HTTP)
-            if method != "ddtss" and i < total - 1 and not self._batch_cancel and delay > 0:
-                for sec in range(int(delay), 0, -1):
-                    if self._batch_cancel:
-                        break
-                    GLib.idle_add(self._batch_countdown.set_text,
-                                  _("Next email in {s} seconds…").format(s=sec))
-                    time.sleep(1)
-                GLib.idle_add(self._batch_countdown.set_text, "")
 
         # Keep sent items in queue (shown with green checkmark) — don't re-send them
         _save_queue(self._queue)
@@ -2119,11 +1968,10 @@ class DDTPTranslateApp(Adw.Application):
                 "2. Browse packages that need translation\n"
                 "3. Write your translation in the editor\n"
                 "4. Add to queue or submit directly\n"
-                "5. Send the queue — translations are emailed to DDTP\n\n"
+                "5. Send the queue — translations are submitted via DDTSS\n\n"
                 "Tip: Export as PO, translate in your favorite editor, "
                 "then import back to queue many at once.\n\n"
-                "Before submitting, configure SMTP in Preferences "
-                "(Gmail works well with an App Password)."
+                "Before submitting, configure your DDTSS account in Preferences."
             ),
         )
         dialog.add_response("close", _("Get Started"))
