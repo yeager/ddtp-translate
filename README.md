@@ -13,7 +13,6 @@ A GTK4/Adwaita application for translating Debian package descriptions via the D
 ### Translation Workflow
 - **Three-panel layout** — Package list, side-by-side original + translation editor
 - **DDTSS integration** — Submit translations directly via the DDTSS web interface (recommended)
-- **SMTP fallback** — Legacy email submission to pdesc@ddtp.debian.org
 - **Translation queue** — Queue translations and batch-submit with progress tracking
 - **Auto-advance** — Automatically moves to next package after submit
 

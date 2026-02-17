@@ -8,7 +8,6 @@ Debian Description Translation Project:
 | Method | Status | How it works |
 |--------|--------|--------------|
 | **DDTSS (web)** | ✅ Recommended | HTTP POST to the DDTSS web interface |
-| **SMTP (email)** | ⚠️ Legacy | Email to `pdesc@ddtp.debian.org` (often broken) |
 
 The DDTSS (Debian Distributed Translation Server Satellite) is the official
 web frontend at https://ddtp.debian.org/ddtss/index.cgi/
@@ -96,14 +95,6 @@ Base URL: `https://ddtp.debian.org/ddtss/index.cgi`
 - 163 active translations out of 68,442 packages (0.2%)
 - Contact: debian-i18n@lists.debian.org
 
-## Migration from SMTP
-
-The old email-based DDTP submission (`pdesc@ddtp.debian.org`) is unreliable:
-- Server returns `550 relay not permitted` since migration to ddtp.debian.org
-- See https://wiki.debian.org/DDTP/Migration — mail interface status unclear
-- DDTSS web submission is the supported method
-
-To switch: Preferences → DDTSS → set "Submit via" to "DDTSS (web)"
 
 ## API Client
 
