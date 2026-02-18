@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ddtp-translate"
-version = "0.8.1"
+version = "0.8.2"
 description = "Translate Debian package descriptions via DDTP"
 license = "GPL-3.0-or-later"
 authors = [
@@ -21,6 +21,9 @@ classifiers = [
 dependencies = [
     "PyGObject>=3.42",
 ]
+
+[project.optional-dependencies]
+translate = ["po-translate"]
 
 [project.scripts]
 ddtp-translate = "ddtp_translate.main:main"

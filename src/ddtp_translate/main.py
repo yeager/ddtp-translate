@@ -5,7 +5,10 @@ import gettext
 import locale
 import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 import threading
 import time
 
@@ -42,6 +45,59 @@ APP_ID = "se.danielnylander.ddtp-translate"
 
 
 # --- Data directory helpers ---
+
+def _po_escape(s):
+    """Escape a string for use in a PO file msgid/msgstr."""
+    return s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+
+
+def _parse_po_entries(path):
+    """Parse a .po file and return list of (msgid, msgstr) tuples, skipping the header."""
+    entries = []
+    current_id = []
+    current_str = []
+    in_msgid = False
+    in_msgstr = False
+
+    def _unescape(s):
+        return s.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
+
+    def _flush():
+        mid = _unescape("".join(current_id))
+        mstr = _unescape("".join(current_str))
+        if mid:  # skip header (empty msgid)
+            entries.append((mid, mstr))
+
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.rstrip("\n")
+            if line.startswith("msgid "):
+                if in_msgstr:
+                    _flush()
+                    current_id.clear()
+                    current_str.clear()
+                in_msgid = True
+                in_msgstr = False
+                s = line[6:].strip()
+                if s.startswith('"') and s.endswith('"'):
+                    current_id.append(s[1:-1])
+            elif line.startswith("msgstr "):
+                in_msgid = False
+                in_msgstr = True
+                s = line[7:].strip()
+                if s.startswith('"') and s.endswith('"'):
+                    current_str.append(s[1:-1])
+            elif line.startswith('"') and line.endswith('"'):
+                s = line[1:-1]
+                if in_msgid:
+                    current_id.append(s)
+                elif in_msgstr:
+                    current_str.append(s)
+        if in_msgstr:
+            _flush()
+
+    return entries
+
 
 def _data_dir():
     xdg = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
@@ -565,6 +621,13 @@ class MainWindow(Adw.ApplicationWindow):
         btn_bar.set_margin_top(6)
         btn_bar.set_margin_bottom(2)
 
+        self._auto_translate_btn = Gtk.Button(label=_("Auto-translate"))
+        self._auto_translate_btn.set_icon_name("accessories-dictionary-symbolic")
+        self._auto_translate_btn.set_tooltip_text(_("Translate using po-translate"))
+        self._auto_translate_btn.set_sensitive(False)
+        self._auto_translate_btn.connect("clicked", self._on_auto_translate)
+        btn_bar.append(self._auto_translate_btn)
+
         self._add_queue_btn = Gtk.Button(label=_("Add to Queue"))
         self._add_queue_btn.set_tooltip_text(_("Add this translation to the send queue"))
         self._add_queue_btn.set_sensitive(False)
@@ -877,6 +940,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.current_pkg = None
             self.submit_btn.set_sensitive(False)
             self._add_queue_btn.set_sensitive(False)
+            self._auto_translate_btn.set_sensitive(False)
             self._pkg_banner.set_visible(False)
             return
 
@@ -891,6 +955,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.trans_view.get_buffer().set_text("")
             self.submit_btn.set_sensitive(True)
             self._add_queue_btn.set_sensitive(True)
+            self._auto_translate_btn.set_sensitive(True)
             self._pkg_banner.set_text(pkg["package"])
             self._pkg_banner.set_visible(True)
             self.status_label.set_text(_("Editing: {pkg}").format(pkg=pkg["package"]))
@@ -971,6 +1036,92 @@ class MainWindow(Adw.ApplicationWindow):
             GLib.idle_add(self.submit_btn.set_sensitive, True)
 
         threading.Thread(target=do_send, daemon=True).start()
+
+    def _on_auto_translate(self, *_args):
+        """Use po-translate to auto-translate the current package description."""
+        if not self.current_pkg:
+            return
+
+        if not shutil.which("po-translate"):
+            dialog = Adw.AlertDialog(
+                heading=_("po-translate not found"),
+                body=_("po-translate is not installed. Install it with:\n\n"
+                       "pip install po-translate\n\n"
+                       "or via your package manager."),
+            )
+            dialog.add_response("ok", "OK")
+            dialog.present(self)
+            return
+
+        pkg = self.current_pkg
+        lang = self._current_lang()
+        orig_text = pkg["short"]
+        if pkg["long"]:
+            orig_text += "\n" + pkg["long"]
+
+        self._auto_translate_btn.set_sensitive(False)
+        self.status_label.set_text(_("Translating with po-translate…"))
+
+        def do_translate():
+            try:
+                tmp_dir = tempfile.mkdtemp(prefix="ddtp-translate-")
+                po_path = os.path.join(tmp_dir, "desc.po")
+
+                lines = orig_text.split("\n")
+                short = lines[0]
+                long_parts = lines[1:] if len(lines) > 1 else []
+
+                with open(po_path, "w", encoding="utf-8") as f:
+                    f.write('msgid ""\nmsgstr ""\n')
+                    f.write(f'"Content-Type: text/plain; charset=UTF-8\\n"\n')
+                    f.write(f'"Language: {lang}\\n"\n\n')
+                    f.write(f'msgid "{_po_escape(short)}"\nmsgstr ""\n\n')
+                    if long_parts:
+                        long_text = "\n".join(long_parts)
+                        f.write('msgid ""\n')
+                        for lp in long_text.split("\n"):
+                            f.write(f'"{_po_escape(lp)}\\n"\n')
+                        f.write('msgstr ""\n')
+
+                result = subprocess.run(
+                    ["po-translate", "--source", "en", "--target", lang, "-q", po_path],
+                    capture_output=True, text=True, timeout=60,
+                )
+
+                if result.returncode != 0:
+                    error = result.stderr.strip() or _("po-translate failed")
+                    GLib.idle_add(self._auto_translate_done, None, error)
+                else:
+                    entries = _parse_po_entries(po_path)
+                    translated_short = ""
+                    translated_long = ""
+                    if entries:
+                        translated_short = entries[0][1] or entries[0][0]
+                    if len(entries) > 1:
+                        translated_long = entries[1][1] or entries[1][0]
+
+                    translation = translated_short
+                    if translated_long:
+                        translation += "\n" + translated_long
+
+                    GLib.idle_add(self._auto_translate_done, translation, None)
+
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+
+            except subprocess.TimeoutExpired:
+                GLib.idle_add(self._auto_translate_done, None, _("Translation timed out"))
+            except Exception as exc:
+                GLib.idle_add(self._auto_translate_done, None, str(exc))
+
+        threading.Thread(target=do_translate, daemon=True).start()
+
+    def _auto_translate_done(self, translation, error):
+        self._auto_translate_btn.set_sensitive(True)
+        if error:
+            self.status_label.set_text(_("Auto-translate failed: {e}").format(e=error))
+        elif translation:
+            self.trans_view.get_buffer().set_text(translation)
+            self.status_label.set_text(_("Auto-translated — review before submitting"))
 
     def _show_submit_result(self, package, success, error_msg):
         if success:
