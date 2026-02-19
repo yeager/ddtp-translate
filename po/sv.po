@@ -1,25 +1,24 @@
 # SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR Daniel Nylander
-# This file is distributed under the same license as the ddtp-translate package.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# 
 # Translators:
 # Daniel Nylander <po@danielnylander.se>, 2026
-#
+# 
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: ddtp-translate 0.8.0\n"
+"Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-18 12:47+0100\n"
 "PO-Revision-Date: 2026-02-15 09:12+0000\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>, 2026\n"
-"Language-Team: Swedish (https://app.transifex.com/danielnylander/teams/"
-"304806/sv/)\n"
-"Language: sv\n"
+"Language-Team: Swedish (https://app.transifex.com/danielnylander/teams/304806/sv/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: src/ddtp_translate/main.py:171 src/ddtp_translate/main.py:455
@@ -37,7 +36,8 @@ msgstr "DDTSS-konto"
 #: src/ddtp_translate/main.py:182
 msgid ""
 "Create an account at https://ddtp.debian.org/ddtss/index.cgi/createlogin"
-msgstr "Skapa ett konto på https://ddtp.debian.org/ddtss/index.cgi/createlogin"
+msgstr ""
+"Skapa ett konto på https://ddtp.debian.org/ddtss/index.cgi/createlogin"
 
 #: src/ddtp_translate/main.py:184
 msgid "Alias"
@@ -205,13 +205,12 @@ msgid "Translation"
 msgstr "Översättning"
 
 #: src/ddtp_translate/main.py:576
-#, fuzzy
 msgid "Auto-translate"
-msgstr "{n} icke-översatta"
+msgstr ""
 
 #: src/ddtp_translate/main.py:578
 msgid "Translate using po-translate"
-msgstr "Översätt med po-translate"
+msgstr ""
 
 #: src/ddtp_translate/main.py:584
 msgid "Add this translation to the send queue"
@@ -342,9 +341,8 @@ msgid "Error: {e}"
 msgstr "Fel: {e}"
 
 #: src/ddtp_translate/main.py:999
-#, fuzzy
 msgid "po-translate not found"
-msgstr "l10n-lint hittades inte"
+msgstr ""
 
 #: src/ddtp_translate/main.py:1000
 msgid ""
@@ -357,27 +355,24 @@ msgstr ""
 
 #: src/ddtp_translate/main.py:1015
 msgid "Translating with po-translate…"
-msgstr "Översätter med po-translate…"
+msgstr ""
 
 #: src/ddtp_translate/main.py:1044
-#, fuzzy
 msgid "po-translate failed"
-msgstr "Importera översatt PO-fil"
+msgstr ""
 
 #: src/ddtp_translate/main.py:1066
-#, fuzzy
 msgid "Translation timed out"
-msgstr "Översättningen är tom"
+msgstr ""
 
 #: src/ddtp_translate/main.py:1075
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Auto-translate failed: {e}"
-msgstr "Inloggning misslyckades: {e}"
+msgstr ""
 
 #: src/ddtp_translate/main.py:1078
-#, fuzzy
 msgid "Auto-translated — review before submitting"
-msgstr "Automatisk lint före inlämning"
+msgstr ""
 
 #: src/ddtp_translate/main.py:1082
 msgid "Sent successfully!"
@@ -519,10 +514,11 @@ msgid "Accept all {n} reviews?"
 msgstr "Acceptera alla {n} granskningar?"
 
 #: src/ddtp_translate/main.py:1440
-msgid "This will accept all pending translations as-is. This cannot be undone."
-msgstr "Detta godkänner alla väntande översättningar som de är. Det går inte att ångra."
-"Detta kommer att acceptera alla väntande översättningar som de är. Detta kan "
-"inte ångras."
+msgid ""
+"This will accept all pending translations as-is. This cannot be undone."
+msgstr ""
+"Detta kommer att acceptera alla väntande översättningar som de är. Detta kan"
+" inte ångras."
 
 #: src/ddtp_translate/main.py:1442 src/ddtp_translate/main.py:1902
 #: src/ddtp_translate/main.py:1955 src/ddtp_translate/main.py:2072
@@ -631,8 +627,7 @@ msgstr "Översättning för \"{pkg}\" godkänd."
 #: src/ddtp_translate/main.py:1701
 #, python-brace-format
 msgid "Translation for \"{pkg}\" accepted with changes (review restarted)."
-msgstr "Översättning för \"{pkg}\" godkänd med ändringar (granskning omstartad)."
-"Översättning för \"{pkg}\" godkänd med ändringar (granskning börjar om)."
+msgstr "Översättning för \"{pkg}\" godkänd med ändringar (granskning börjar om)."
 
 #: src/ddtp_translate/main.py:1703
 #, python-brace-format
@@ -960,8 +955,7 @@ msgstr "Välkommen till Översätt DDTP"
 
 #: src/ddtp_translate/main.py:2638
 msgid ""
-"This app helps you translate Debian package descriptions through the Debian "
-"Description Translation Project (DDTP).\n"
+"This app helps you translate Debian package descriptions through the Debian Description Translation Project (DDTP).\n"
 "\n"
 "How it works:\n"
 "1. Select your language from the dropdown\n"
@@ -970,13 +964,11 @@ msgid ""
 "4. Add to queue or submit directly\n"
 "5. Send the queue — translations go to DDTSS\n"
 "\n"
-"Tip: Export as PO, translate in your favorite editor, then import back to "
-"queue many at once.\n"
+"Tip: Export as PO, translate in your favorite editor, then import back to queue many at once.\n"
 "\n"
 "Before submitting, configure your DDTSS account in Preferences."
 msgstr ""
-"Denna app hjälper dig att översätta Debian-paketbeskrivningar genom Debian "
-"Description Translation Project (DDTP).\n"
+"Denna app hjälper dig att översätta Debian-paketbeskrivningar genom Debian Description Translation Project (DDTP).\n"
 "\n"
 "Så här fungerar det:\n"
 "1. Välj ditt språk i rullgardinsmenyn\n"
@@ -985,8 +977,7 @@ msgstr ""
 "4. Lägg till i kö eller skicka direkt\n"
 "5. Skicka kön – översättningarna skickas till DDTSS\n"
 "\n"
-"Tips: Exportera som PO, översätt i din favoritredigerare och importera sedan "
-"tillbaka till kön, flera samtidigt.\n"
+"Tips: Exportera som PO, översätt i din favoritredigerare och importera sedan tillbaka till kön, flera samtidigt.\n"
 "\n"
 "Innan du skickar, konfigurera ditt DDTSS-konto i Inställningar."
 
