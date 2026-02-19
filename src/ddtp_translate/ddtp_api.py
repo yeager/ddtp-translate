@@ -247,6 +247,59 @@ def fetch_untranslated(lang, force_refresh=False):
     )
 
 
+def fetch_popcon_data(force_refresh=False):
+    """Fetch Debian popcon (popularity contest) install counts.
+
+    Returns dict mapping package_name -> install_count.
+    Data from https://popcon.debian.org/by_inst.gz
+    """
+    import gzip
+    cache = _cache_dir() / "popcon_by_inst.json"
+
+    if not force_refresh and _is_cache_valid(cache):
+        with open(cache, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    url = "https://popcon.debian.org/by_inst.gz"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "ddtp-translate/0.8"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            compressed = resp.read()
+        text = gzip.decompress(compressed).decode("utf-8", errors="replace")
+    except Exception as exc:
+        # Try stale cache
+        if cache.exists():
+            with open(cache, "r", encoding="utf-8") as f:
+                return json.load(f)
+        return {}
+
+    popcon = {}
+    for line in text.splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        parts = line.split()
+        if len(parts) >= 3:
+            try:
+                # Format: rank name inst vote old recent no-files
+                # or: name inst vote old recent no-files (without rank column)
+                # The by_inst format: rank name inst vote old recent no-files
+                rank = parts[0]
+                if rank.isdigit():
+                    pkg_name = parts[1]
+                    inst_count = int(parts[2])
+                else:
+                    pkg_name = parts[0]
+                    inst_count = int(parts[1])
+                popcon[pkg_name] = inst_count
+            except (ValueError, IndexError):
+                continue
+
+    with open(cache, "w", encoding="utf-8") as f:
+        json.dump(popcon, f, ensure_ascii=False)
+
+    return popcon
+
+
 def fetch_ddtp_stats():
     """Fetch translation statistics from ddtp.debian.org main page.
 

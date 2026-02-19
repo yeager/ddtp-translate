@@ -549,6 +549,75 @@ class DDTSSClient:
         self._check_error(body)
         return True
 
+    def get_package_statuses(self):
+        """Get detailed status of all packages from the DDTSS main page.
+
+        Returns dict with keys:
+            pending_translation: list of package names awaiting translation
+            pending_review: list of dicts {package, note, reviewed_by_you}
+            recently_reviewed: list of dicts {package, status}
+            translated: set of package names that have been translated
+        """
+        url = f"{DDTSS_BASE}/{self.lang}/"
+        status, body = self._request(url)
+
+        result = {
+            "pending_translation": [],
+            "pending_review": [],
+            "recently_reviewed": [],
+        }
+
+        # Parse "Pending translation" section
+        pending_trans = re.search(
+            r'Pending translation.*?<ol>(.*?)</ol>', body, re.DOTALL
+        )
+        if pending_trans:
+            for m in re.finditer(r'translate/([\w.+-]+)', pending_trans.group(1)):
+                result["pending_translation"].append(m.group(1))
+
+        # Parse "Pending review" section
+        review_section = re.search(
+            r'Pending review.*?<ol>(.*?)</ol>', body, re.DOTALL
+        )
+        if review_section:
+            for m in re.finditer(
+                r'forreview/([\w.+-]+)\?(\d+)">([\w.+-]+)</a>\s*\(([^)]*)\)',
+                review_section.group(1)
+            ):
+                result["pending_review"].append({
+                    "package": m.group(1),
+                    "note": m.group(4),
+                    "reviewed_by_you": False,
+                })
+
+        # Parse "Reviewed by you" section
+        reviewed_section = re.search(
+            r'Reviewed by you.*?<ol>(.*?)</ol>', body, re.DOTALL
+        )
+        if reviewed_section:
+            for m in re.finditer(
+                r'forreview/([\w.+-]+)\?(\d+)">([\w.+-]+)</a>\s*\(([^)]*)\)',
+                reviewed_section.group(1)
+            ):
+                result["pending_review"].append({
+                    "package": m.group(1),
+                    "note": m.group(4),
+                    "reviewed_by_you": True,
+                })
+
+        # Parse "Recently DDTP'd" section (successfully reviewed and sent)
+        recently = re.search(
+            r'Recently DDTP.*?<ol>(.*?)</ol>', body, re.DOTALL
+        )
+        if recently:
+            for m in re.finditer(r'>([\w.+-]+)</(?:a|li)', recently.group(1)):
+                result["recently_reviewed"].append({
+                    "package": m.group(1),
+                    "status": "done",
+                })
+
+        return result
+
     def get_stats(self):
         """Get translation statistics for the current language.
 

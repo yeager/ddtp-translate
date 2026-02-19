@@ -19,7 +19,7 @@ gi.require_version("Adw", "1")
 from gi.repository import Adw, Gio, GLib, Gtk, Gdk, Pango  # noqa: E402
 
 from . import __version__
-from .ddtp_api import DDTP_LANGUAGES, fetch_untranslated, fetch_ddtp_stats
+from .ddtp_api import DDTP_LANGUAGES, fetch_untranslated, fetch_ddtp_stats, fetch_popcon_data
 from .settings import load_settings, save_settings
 from .ddtss_client import (
     DDTSSClient, DDTSSError, DDTSSAuthError,
@@ -181,6 +181,10 @@ def _setup_css():
     .pkg-flag-modified { color: #e5a50a; }
     .pkg-flag-queued { color: @accent_color; }
     .pkg-flag-error { color: #c01c28; }
+    .pkg-status-none { color: #3584e4; }
+    .pkg-status-pending { color: #e5a50a; }
+    .pkg-status-reviewed-comment { color: #ff7800; }
+    .pkg-status-reviewed-ok { color: #26a269; }
     .status-bar { padding: 4px 12px; }
     .pkg-banner { padding: 4px 12px; }
     .compact-row { padding: 2px 6px; }
@@ -303,6 +307,30 @@ class PreferencesWindow(Adw.PreferencesWindow):
         workflow_group.add(self.cache_ttl_row)
 
         workflow_page.add(workflow_group)
+
+        # Sorting group
+        sort_group = Adw.PreferencesGroup(
+            title=_("Sorting"),
+            description=_("Default sort order for the package list."),
+        )
+
+        self.default_sort_row = Adw.ComboRow(title=_("Default sort mode"))
+        sort_model = Gtk.StringList()
+        self._sort_mode_values = ["alpha", "status", "popcon"]
+        for label in [_("Alphabetical"), _("By status"), _("By popularity (popcon)")]:
+            sort_model.append(label)
+        self.default_sort_row.set_model(sort_model)
+        current_sort = self.settings.get("sort_mode", "alpha")
+        if current_sort in self._sort_mode_values:
+            self.default_sort_row.set_selected(self._sort_mode_values.index(current_sort))
+        sort_group.add(self.default_sort_row)
+
+        self.fetch_statuses_row = Adw.SwitchRow(title=_("Fetch DDTSS statuses on load"))
+        self.fetch_statuses_row.set_active(self.settings.get("fetch_ddtss_statuses", True))
+        sort_group.add(self.fetch_statuses_row)
+
+        workflow_page.add(sort_group)
+
         self.add(workflow_page)
 
         self.connect("close-request", self._on_close)
@@ -338,6 +366,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
                 "auto_lint": self.auto_lint_row.get_active(),
                 "auto_advance": self.auto_advance_row.get_active(),
                 "cache_ttl_hours": int(self.cache_ttl_row.get_value()),
+                "sort_mode": self._sort_mode_values[self.default_sort_row.get_selected()],
+                "fetch_ddtss_statuses": self.fetch_statuses_row.get_active(),
             }
         )
         save_settings(self.settings)
@@ -357,6 +387,7 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings = load_settings()
         self._heatmap_mode = False
         self._sort_ascending = True
+        self._sort_mode = self.settings.get("sort_mode", "alpha")  # alpha, status, popcon
         self._last_send_time = 0
         self._queue = []
         self._batch_running = False
@@ -366,6 +397,14 @@ class MainWindow(Adw.ApplicationWindow):
         self._error_packages = set()
         self._ddtss_logged_in = False
         self._completion_pct = 0.0
+
+        # DDTSS status tracking
+        # Status values: "none" (untranslated), "pending" (submitted, not reviewed),
+        # "reviewed_comment" (reviewed with comment), "reviewed_ok" (reviewed OK/done)
+        self._pkg_ddtss_status = {}  # package_name -> status string
+        self._pkg_ddtss_data = {}    # package_name -> {short_trans, long_trans, ...}
+        self._status_filter = "all"  # all, none, pending, reviewed_comment, reviewed_ok
+        self._popcon_data = {}       # package_name -> install_count
 
         self.connect("close-request", self._on_close_request)
 
@@ -398,11 +437,41 @@ class MainWindow(Adw.ApplicationWindow):
         refresh_btn.connect("clicked", self._on_refresh)
         header.pack_start(refresh_btn)
 
-        # Sort button
-        sort_btn = Gtk.Button(icon_name="view-sort-ascending-symbolic", tooltip_text=_("Sort packages"))
+        # Sort mode dropdown
+        sort_model = Gtk.StringList()
+        self._sort_modes = ["alpha", "status", "popcon"]
+        self._sort_mode_labels = [_("Alphabetical"), _("By status"), _("By popularity")]
+        for label in self._sort_mode_labels:
+            sort_model.append(label)
+        self._sort_dropdown = Gtk.DropDown(model=sort_model)
+        self._sort_dropdown.set_tooltip_text(_("Sort mode"))
+        if self._sort_mode in self._sort_modes:
+            self._sort_dropdown.set_selected(self._sort_modes.index(self._sort_mode))
+        self._sort_dropdown.connect("notify::selected", self._on_sort_mode_changed)
+        header.pack_start(self._sort_dropdown)
+
+        # Sort direction button
+        sort_btn = Gtk.Button(icon_name="view-sort-ascending-symbolic", tooltip_text=_("Sort direction"))
         sort_btn.connect("clicked", self._on_sort_clicked)
         header.pack_start(sort_btn)
         self._sort_btn = sort_btn
+
+        # Status filter dropdown
+        filter_model = Gtk.StringList()
+        self._filter_values = ["all", "none", "pending", "reviewed_comment", "reviewed_ok"]
+        self._filter_labels = [
+            _("All packages"),
+            _("🔵 Not translated"),
+            _("🟡 Submitted (not reviewed)"),
+            _("🟠 Reviewed (with comments)"),
+            _("🟢 Reviewed OK"),
+        ]
+        for label in self._filter_labels:
+            filter_model.append(label)
+        self._filter_dropdown = Gtk.DropDown(model=filter_model)
+        self._filter_dropdown.set_tooltip_text(_("Filter by status"))
+        self._filter_dropdown.connect("notify::selected", self._on_filter_changed)
+        header.pack_start(self._filter_dropdown)
 
         # Heatmap toggle
         self._heatmap_btn = Gtk.ToggleButton(icon_name="view-grid-symbolic")
@@ -724,17 +793,65 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_refresh(self, *_args):
         self._refresh_packages(force=True)
 
+    def _on_sort_mode_changed(self, dropdown, *_args):
+        idx = dropdown.get_selected()
+        if 0 <= idx < len(self._sort_modes):
+            self._sort_mode = self._sort_modes[idx]
+            self.settings["sort_mode"] = self._sort_mode
+            save_settings(self.settings)
+            self._apply_sort_and_filter()
+
+    def _on_filter_changed(self, dropdown, *_args):
+        idx = dropdown.get_selected()
+        if 0 <= idx < len(self._filter_values):
+            self._status_filter = self._filter_values[idx]
+            self._apply_sort_and_filter()
+
+    def _get_sort_key(self, pkg):
+        """Return sort key for a package based on current sort mode."""
+        name = pkg.get("package", "").lower()
+        if self._sort_mode == "status":
+            status = self._pkg_ddtss_status.get(pkg.get("package", ""), "none")
+            order = {"none": 0, "pending": 1, "reviewed_comment": 2, "reviewed_ok": 3}
+            return (order.get(status, 0), name)
+        elif self._sort_mode == "popcon":
+            count = self._popcon_data.get(pkg.get("package", ""), 0)
+            return (-count, name)  # Higher count first
+        return name
+
+    def _apply_sort_and_filter(self):
+        """Re-sort and re-filter the package list."""
+        pkgs = getattr(self, '_all_packages', self.packages)
+        if not pkgs:
+            return
+
+        # Sort
+        pkgs.sort(key=self._get_sort_key, reverse=not self._sort_ascending)
+
+        # Filter by status
+        if self._status_filter != "all":
+            filtered = [p for p in pkgs if self._pkg_ddtss_status.get(p.get("package", ""), "none") == self._status_filter]
+        else:
+            filtered = pkgs
+
+        # Apply max packages limit
+        limit = self._get_max_packages()
+        total = len(filtered)
+        if limit > 0 and len(filtered) > limit:
+            display = filtered[:limit]
+            self.stats_label.set_text(_("{shown} of {total}").format(shown=limit, total=total))
+        else:
+            display = filtered
+            self.stats_label.set_text(_("{n} packages").format(n=total))
+
+        self._populate_list(display, update_stats=False)
+
     def _on_sort_clicked(self, btn):
         self._sort_ascending = not self._sort_ascending
         btn.set_icon_name(
             "view-sort-ascending-symbolic" if self._sort_ascending else "view-sort-descending-symbolic"
         )
-        if hasattr(self, '_all_packages'):
-            self._all_packages.sort(key=lambda p: p.get("package", "").lower(), reverse=not self._sort_ascending)
-            self._on_packages_loaded(self._all_packages)
-        else:
-            self.packages.sort(key=lambda p: p.get("package", "").lower(), reverse=not self._sort_ascending)
-            self._populate_list(self.packages)
+        self._apply_sort_and_filter()
 
     def _refresh_packages(self, force=False):
         lang = self._current_lang()
@@ -791,16 +908,14 @@ class MainWindow(Adw.ApplicationWindow):
         self._progress_bar.set_fraction(1.0)
         self._progress_bar.set_text(_("{n} packages loaded").format(n=total))
         GLib.timeout_add(1500, self._hide_progress)
-        pkgs.sort(key=lambda p: p.get("package", "").lower(), reverse=not self._sort_ascending)
         self._all_packages = pkgs
-        limit = self._get_max_packages()
-        if limit > 0 and len(pkgs) > limit:
-            display_pkgs = pkgs[:limit]
-            self.stats_label.set_text(_("{shown} of {total} untranslated").format(shown=limit, total=total))
-            self._populate_list(display_pkgs, update_stats=False)
-        else:
-            self._populate_list(pkgs)
+        self._apply_sort_and_filter()
         self._update_status_bar()
+
+        # Fetch DDTSS statuses in background
+        self._fetch_ddtss_statuses()
+        # Fetch popcon data in background
+        self._fetch_popcon_data()
 
     def _on_load_error(self, msg):
         self._progress_bar.set_visible(False)
@@ -813,6 +928,109 @@ class MainWindow(Adw.ApplicationWindow):
     def _hide_progress(self):
         self._progress_bar.set_visible(False)
         return False
+
+    def _fetch_ddtss_statuses(self):
+        """Fetch DDTSS package statuses in background."""
+        settings = load_settings()
+        if not settings.get("fetch_ddtss_statuses", True):
+            return
+        if not settings.get("ddtss_alias"):
+            return
+
+        lang = self._current_lang()
+
+        def do_fetch():
+            try:
+                client = DDTSSClient(lang=lang)
+                if not client.is_logged_in():
+                    client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
+                self._ddtss_logged_in = True
+                statuses = client.get_package_statuses()
+
+                status_map = {}
+                # Pending translation = submitted but not yet reviewed
+                for pkg_name in statuses.get("pending_translation", []):
+                    status_map[pkg_name] = "pending"
+
+                # Pending review
+                for r in statuses.get("pending_review", []):
+                    pkg_name = r["package"]
+                    note = r.get("note", "")
+                    if r.get("reviewed_by_you"):
+                        status_map[pkg_name] = "reviewed_ok"
+                    elif note:
+                        status_map[pkg_name] = "reviewed_comment"
+                    else:
+                        status_map[pkg_name] = "pending"
+
+                # Recently done
+                for r in statuses.get("recently_reviewed", []):
+                    status_map[r["package"]] = "reviewed_ok"
+
+                GLib.idle_add(self._on_ddtss_statuses_loaded, status_map)
+            except Exception as exc:
+                GLib.idle_add(self.status_label.set_text,
+                              _("DDTSS status fetch failed: {e}").format(e=str(exc)))
+
+        threading.Thread(target=do_fetch, daemon=True).start()
+
+    def _on_ddtss_statuses_loaded(self, status_map):
+        self._pkg_ddtss_status.update(status_map)
+        self._apply_sort_and_filter()
+        self._update_status_bar()
+
+    def _fetch_popcon_data(self):
+        """Fetch popcon data in background."""
+        def do_fetch():
+            try:
+                data = fetch_popcon_data()
+                GLib.idle_add(self._on_popcon_loaded, data)
+            except Exception:
+                pass
+
+        threading.Thread(target=do_fetch, daemon=True).start()
+
+    def _on_popcon_loaded(self, data):
+        self._popcon_data = data
+        # Re-sort if currently sorting by popcon
+        if self._sort_mode == "popcon":
+            self._apply_sort_and_filter()
+
+    def _fetch_pkg_ddtss_data(self, package):
+        """Fetch translation data for a specific package from DDTSS."""
+        settings = load_settings()
+        if not settings.get("ddtss_alias"):
+            return
+
+        lang = self._current_lang()
+
+        def do_fetch():
+            try:
+                client = DDTSSClient(lang=lang)
+                if not client.is_logged_in():
+                    client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
+                status = self._pkg_ddtss_status.get(package, "none")
+                if status in ("pending", "reviewed_comment", "reviewed_ok"):
+                    data = client.get_review_page(package)
+                else:
+                    data = client.get_translate_page(package)
+                GLib.idle_add(self._on_pkg_ddtss_data_loaded, package, data)
+            except Exception:
+                pass
+
+        threading.Thread(target=do_fetch, daemon=True).start()
+
+    def _on_pkg_ddtss_data_loaded(self, package, data):
+        self._pkg_ddtss_data[package] = data
+        # If this is the currently selected package, update the translation view
+        if self.current_pkg and self.current_pkg.get("package") == package:
+            trans_text = data.get("short_trans", "")
+            if data.get("long_trans"):
+                trans_text += "\n\n" + data["long_trans"]
+            buf = self.trans_view.get_buffer()
+            current = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False).strip()
+            if not current:
+                buf.set_text(trans_text)
 
     def _clear_list(self):
         if hasattr(self.pkg_list, "remove_all"):
@@ -830,6 +1048,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _get_status_icon(self, pkg_name):
         """Return a Gtk.Image status icon for a package, or None."""
+        # Local session status takes priority
         if pkg_name in self._submitted_packages:
             icon = Gtk.Image.new_from_icon_name("emblem-ok-symbolic")
             icon.set_tooltip_text(_("Submitted ✅"))
@@ -850,7 +1069,30 @@ class MainWindow(Adw.ApplicationWindow):
             icon.set_tooltip_text(_("Modified — not in queue 📝"))
             icon.add_css_class("pkg-flag-modified")
             return icon
-        return None
+
+        # DDTSS status icons
+        ddtss_status = self._pkg_ddtss_status.get(pkg_name)
+        if ddtss_status == "reviewed_ok":
+            icon = Gtk.Image.new_from_icon_name("emblem-ok-symbolic")
+            icon.set_tooltip_text(_("Reviewed OK ✅"))
+            icon.add_css_class("pkg-status-reviewed-ok")
+            return icon
+        if ddtss_status == "reviewed_comment":
+            icon = Gtk.Image.new_from_icon_name("emblem-ok-symbolic")
+            icon.set_tooltip_text(_("Reviewed (with comments) 🟠"))
+            icon.add_css_class("pkg-status-reviewed-comment")
+            return icon
+        if ddtss_status == "pending":
+            icon = Gtk.Image.new_from_icon_name("emblem-ok-symbolic")
+            icon.set_tooltip_text(_("Submitted, not reviewed 🟡"))
+            icon.add_css_class("pkg-status-pending")
+            return icon
+
+        # No translation (default blue)
+        icon = Gtk.Image.new_from_icon_name("list-add-symbolic")
+        icon.set_tooltip_text(_("Not translated 🔵"))
+        icon.add_css_class("pkg-status-none")
+        return icon
 
     def _populate_list(self, pkgs, update_stats=True):
         self.packages = pkgs
@@ -867,9 +1109,16 @@ class MainWindow(Adw.ApplicationWindow):
             label.set_ellipsize(Pango.EllipsizeMode.END)
             row_box.append(label)
 
+            # Popcon count label
+            popcon_count = self._popcon_data.get(pkg["package"], 0)
+            if popcon_count > 0:
+                pop_label = Gtk.Label(label=str(popcon_count))
+                pop_label.add_css_class("dim-label")
+                pop_label.set_tooltip_text(_("Popcon installs: {n}").format(n=popcon_count))
+                row_box.append(pop_label)
+
             icon = self._get_status_icon(pkg["package"])
-            if icon:
-                row_box.append(icon)
+            row_box.append(icon)
 
             self.pkg_list.append(row_box)
         if update_stats:
@@ -952,13 +1201,41 @@ class MainWindow(Adw.ApplicationWindow):
             if pkg["long"]:
                 desc += "\n\n" + pkg["long"]
             self.orig_view.get_buffer().set_text(desc)
-            self.trans_view.get_buffer().set_text("")
+
+            # If we have DDTSS data for this package, show the existing translation
+            ddtss_data = self._pkg_ddtss_data.get(pkg["package"])
+            if ddtss_data:
+                trans_text = ddtss_data.get("short_trans", "")
+                if ddtss_data.get("long_trans"):
+                    trans_text += "\n\n" + ddtss_data["long_trans"]
+                self.trans_view.get_buffer().set_text(trans_text)
+            else:
+                self.trans_view.get_buffer().set_text("")
+
             self.submit_btn.set_sensitive(True)
             self._add_queue_btn.set_sensitive(True)
             self._auto_translate_btn.set_sensitive(True)
-            self._pkg_banner.set_text(pkg["package"])
+
+            # Banner with status info
+            ddtss_status = self._pkg_ddtss_status.get(pkg["package"], "none")
+            status_labels = {
+                "none": "",
+                "pending": " — " + _("submitted, awaiting review"),
+                "reviewed_comment": " — " + _("reviewed with comments"),
+                "reviewed_ok": " — " + _("reviewed OK"),
+            }
+            popcon = self._popcon_data.get(pkg["package"], 0)
+            banner = pkg["package"]
+            if popcon:
+                banner += f"  (popcon: {popcon})"
+            banner += status_labels.get(ddtss_status, "")
+            self._pkg_banner.set_text(banner)
             self._pkg_banner.set_visible(True)
             self.status_label.set_text(_("Editing: {pkg}").format(pkg=pkg["package"]))
+
+            # If package has DDTSS status but we don't have the translation data yet, fetch it
+            if ddtss_status in ("pending", "reviewed_comment", "reviewed_ok") and not ddtss_data:
+                self._fetch_pkg_ddtss_data(pkg["package"])
 
     def _advance_to_next_package(self):
         if not self.packages:
