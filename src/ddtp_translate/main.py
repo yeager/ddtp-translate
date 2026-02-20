@@ -27,6 +27,11 @@ from .ddtss_client import (
 )
 
 # i18n setup
+try:
+    locale.setlocale(locale.LC_ALL, "")
+except locale.Error:
+    pass
+
 LOCALE_DIR = None
 for d in [
     os.path.join(os.path.dirname(__file__), "..", "..", "po"),
@@ -37,6 +42,7 @@ for d in [
         LOCALE_DIR = d
         break
 
+locale.bindtextdomain("ddtp-translate", LOCALE_DIR)
 gettext.bindtextdomain("ddtp-translate", LOCALE_DIR)
 gettext.textdomain("ddtp-translate")
 _ = gettext.gettext
