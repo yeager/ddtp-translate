@@ -206,11 +206,11 @@ msgstr "Översättning"
 
 #: src/ddtp_translate/main.py:576
 msgid "Auto-translate"
-msgstr ""
+msgstr "Översätt automatiskt"
 
 #: src/ddtp_translate/main.py:578
 msgid "Translate using po-translate"
-msgstr ""
+msgstr "Översätt med hjälp av po-translate"
 
 #: src/ddtp_translate/main.py:584
 msgid "Add this translation to the send queue"
@@ -342,7 +342,7 @@ msgstr "Fel: {e}"
 
 #: src/ddtp_translate/main.py:999
 msgid "po-translate not found"
-msgstr ""
+msgstr "po-translate hittades inte"
 
 #: src/ddtp_translate/main.py:1000
 msgid ""
@@ -352,27 +352,32 @@ msgid ""
 "\n"
 "or via your package manager."
 msgstr ""
+"po-translate är inte installerat. Installera det med:\n"
+"\n"
+"pip install po-translate\n"
+"\n"
+"eller via din pakethanterare."
 
 #: src/ddtp_translate/main.py:1015
 msgid "Translating with po-translate…"
-msgstr ""
+msgstr "Översätter med po-translate…"
 
 #: src/ddtp_translate/main.py:1044
 msgid "po-translate failed"
-msgstr ""
+msgstr "po-translate misslyckades"
 
 #: src/ddtp_translate/main.py:1066
 msgid "Translation timed out"
-msgstr ""
+msgstr "Tidsgräns för översättning överstegs"
 
 #: src/ddtp_translate/main.py:1075
 #, python-brace-format
 msgid "Auto-translate failed: {e}"
-msgstr ""
+msgstr "Automatisk översättning misslyckades: {e}"
 
 #: src/ddtp_translate/main.py:1078
 msgid "Auto-translated — review before submitting"
-msgstr ""
+msgstr "Automatiskt översatt — granska innan insändning"
 
 #: src/ddtp_translate/main.py:1082
 msgid "Sent successfully!"
@@ -989,6 +994,7 @@ msgstr "Kom igång"
 msgid ""
 "Translate this app: https://www.transifex.com/danielnylander/ddtp-translate/"
 msgstr ""
+"Översätt denna app: https://www.transifex.com/danielnylander/ddtp-translate/"
 
 #: src/ddtp_translate/main.py:2751
 msgid "Translate Debian package descriptions via DDTP"
