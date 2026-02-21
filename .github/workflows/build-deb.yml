@@ -32,7 +32,7 @@ jobs:
           mkdir -p ${ROOT}/DEBIAN
           mkdir -p ${ROOT}/usr/lib/python3/dist-packages/${PYNAME}
           mkdir -p ${ROOT}/usr/bin
-          mkdir -p ${ROOT}/usr/share/${PKG}/locale
+          mkdir -p ${ROOT}/usr/share/locale
           mkdir -p ${ROOT}/usr/share/applications
           mkdir -p ${ROOT}/usr/share/metainfo
           mkdir -p ${ROOT}/usr/share/icons/hicolor/scalable/apps
@@ -61,8 +61,8 @@ jobs:
           for po in po/*.po; do
             [ -f "$po" ] || continue
             lang=$(basename "$po" .po)
-            mkdir -p ${ROOT}/usr/share/${PKG}/locale/${lang}/LC_MESSAGES
-            msgfmt -o ${ROOT}/usr/share/${PKG}/locale/${lang}/LC_MESSAGES/${PKG}.mo "$po"
+            mkdir -p ${ROOT}/usr/share/locale/${lang}/LC_MESSAGES
+            msgfmt -o ${ROOT}/usr/share/locale/${lang}/LC_MESSAGES/${PKG}.mo "$po"
           done
 
           # DEBIAN/control
