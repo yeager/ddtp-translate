@@ -134,6 +134,33 @@ def _log_event(message):
         pass
 
 
+def _format_ddtss_note(note):
+    """Format DDTSS note string into user-friendly text.
+
+    DDTSS notes look like: "owner: alice, had 0/1"
+    meaning: owner is alice, 0 reviews out of 1 required.
+    """
+    if not note:
+        return ""
+    parts = []
+    # Parse owner
+    owner_m = re.match(r'owner:\s*(\S+)', note)
+    if owner_m:
+        parts.append(_("Submitted by {user}").format(user=owner_m.group(1)))
+    # Parse review count "had X/Y"
+    had_m = re.search(r'had\s+(\d+)/(\d+)', note)
+    if had_m:
+        done = int(had_m.group(1))
+        needed = int(had_m.group(2))
+        if done >= needed:
+            parts.append(_("Reviews: {done}/{needed} ✓").format(done=done, needed=needed))
+        else:
+            parts.append(_("Reviews: {done}/{needed} (awaiting review)").format(done=done, needed=needed))
+    if parts:
+        return " — ".join(parts)
+    return note
+
+
 def _save_queue(queue):
     """Persist queue to disk."""
     import json
@@ -1892,7 +1919,7 @@ class MainWindow(Adw.ApplicationWindow):
             list_box.append(header_row)
 
             for r in pending:
-                row = Adw.ActionRow(title=r["package"], subtitle=r.get("note", ""), activatable=True)
+                row = Adw.ActionRow(title=r["package"], subtitle=_format_ddtss_note(r.get("note", "")), activatable=True)
                 row.add_suffix(Gtk.Image.new_from_icon_name("go-next-symbolic"))
                 row.connect("activated", lambda w, pkg=r["package"]: (
                     dialog.close(), self._open_review_detail(pkg, lang, settings)))
@@ -1906,7 +1933,7 @@ class MainWindow(Adw.ApplicationWindow):
             list_box.append(header_row2)
 
             for r in reviewed:
-                row = Adw.ActionRow(title=r["package"], subtitle=r.get("note", ""), activatable=True)
+                row = Adw.ActionRow(title=r["package"], subtitle=_format_ddtss_note(r.get("note", "")), activatable=True)
                 row.add_prefix(Gtk.Image.new_from_icon_name("emblem-ok-symbolic"))
                 row.add_suffix(Gtk.Image.new_from_icon_name("go-next-symbolic"))
                 row.connect("activated", lambda w, pkg=r["package"]: (
@@ -2060,9 +2087,18 @@ class MainWindow(Adw.ApplicationWindow):
         main_box.append(scroll)
 
         if data.get("owner"):
-            owner_label = Gtk.Label(label=_("Owner: {owner}").format(owner=data["owner"]), xalign=0)
+            owner_label = Gtk.Label(label=_("Submitted by: {owner}").format(owner=data["owner"]), xalign=0)
             owner_label.add_css_class("dim-label")
             content.append(owner_label)
+
+            # Self-review warning
+            alias = self.settings.get("ddtss_alias", "")
+            if alias and alias.lower() == data["owner"].lower():
+                self_warn = Gtk.Label(
+                    label=_("⚠️ You cannot review your own translation. Another user must review it."),
+                    xalign=0, wrap=True)
+                self_warn.add_css_class("warning")
+                content.append(self_warn)
 
         orig_short_label = Gtk.Label(label=_("Original short description"), xalign=0)
         orig_short_label.add_css_class("title-4")
