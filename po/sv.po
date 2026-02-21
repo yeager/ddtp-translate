@@ -1,6 +1,6 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
+# This file is distributed under the same license as the ddtp-translate package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 # 
 # Translators:
@@ -9,9 +9,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: ddtp-translate 0.10.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-18 08:25+0100\n"
+"POT-Creation-Date: 2026-02-21 13:19+0100\n"
 "PO-Revision-Date: 2026-02-15 09:12+0000\n"
 "Last-Translator: Daniel Nylander <po@danielnylander.se>, 2026\n"
 "Language-Team: Swedish (https://app.transifex.com/danielnylander/teams/304806/sv/)\n"
@@ -21,245 +21,363 @@ msgstr ""
 "Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/ddtp_translate/main.py:163 src/ddtp_translate/main.py:447
+#: src/ddtp_translate/main.py:232 src/ddtp_translate/main.py:581
 msgid "Preferences"
 msgstr "Inställningar"
 
-#: src/ddtp_translate/main.py:170
+#: src/ddtp_translate/main.py:239
 msgid "DDTSS"
 msgstr "DDTSS"
 
-#: src/ddtp_translate/main.py:173
+#: src/ddtp_translate/main.py:242
 msgid "DDTSS Account"
 msgstr "DDTSS-konto"
 
-#: src/ddtp_translate/main.py:174
+#: src/ddtp_translate/main.py:243
 msgid ""
 "Create an account at https://ddtp.debian.org/ddtss/index.cgi/createlogin"
 msgstr ""
 "Skapa ett konto på https://ddtp.debian.org/ddtss/index.cgi/createlogin"
 
-#: src/ddtp_translate/main.py:176
+#: src/ddtp_translate/main.py:245
 msgid "Alias"
 msgstr "Alias"
 
-#: src/ddtp_translate/main.py:180
+#: src/ddtp_translate/main.py:249
 msgid "Password"
 msgstr "Lösenord"
 
-#: src/ddtp_translate/main.py:184 src/ddtp_translate/main.py:259
-#: src/ddtp_translate/main.py:271
+#: src/ddtp_translate/main.py:253 src/ddtp_translate/main.py:352
+#: src/ddtp_translate/main.py:364
 msgid "Test Login"
 msgstr "Testa inloggning"
 
-#: src/ddtp_translate/main.py:196
+#: src/ddtp_translate/main.py:265 src/ddtp_translate/main.py:605
+#: src/ddtp_translate/main.py:828
 msgid "Settings"
 msgstr "Inställningar"
 
-#: src/ddtp_translate/main.py:199
+#: src/ddtp_translate/main.py:268
 msgid "Display"
 msgstr "Visning"
 
-#: src/ddtp_translate/main.py:200
+#: src/ddtp_translate/main.py:269
 msgid "Limit how many packages are loaded into the list for faster startup."
 msgstr "Begränsa antalet paket som läses in i listan för snabbare start."
 
-#: src/ddtp_translate/main.py:203
+#: src/ddtp_translate/main.py:272
 msgid "Max packages to display"
 msgstr "Max antal paket att visa"
 
-#: src/ddtp_translate/main.py:207
+#: src/ddtp_translate/main.py:276
 msgid "All"
 msgstr "Alla"
 
-#: src/ddtp_translate/main.py:219
+#: src/ddtp_translate/main.py:288
 msgid "Logging"
 msgstr "Loggning"
 
-#: src/ddtp_translate/main.py:220
+#: src/ddtp_translate/main.py:289
 msgid "Enable event logging to track application activity."
 msgstr "Aktivera händelseloggning för att spåra applikationsaktivitet."
 
-#: src/ddtp_translate/main.py:222
+#: src/ddtp_translate/main.py:291
 msgid "Enable event logging"
 msgstr "Aktivera händelseloggning"
 
-#: src/ddtp_translate/main.py:230 src/ddtp_translate/main.py:232
+#: src/ddtp_translate/main.py:299 src/ddtp_translate/main.py:301
 msgid "Workflow"
 msgstr "Arbetsflöde"
 
-#: src/ddtp_translate/main.py:233
+#: src/ddtp_translate/main.py:302
 msgid "Customize the translation workflow."
 msgstr "Anpassa arbetsflödet för översättning."
 
-#: src/ddtp_translate/main.py:236
+#: src/ddtp_translate/main.py:305
 msgid "Auto-lint before submit"
 msgstr "Automatisk lint före inlämning"
 
-#: src/ddtp_translate/main.py:240
+#: src/ddtp_translate/main.py:309
 msgid "Auto-advance to next package after submit"
 msgstr "Automatisk övergång till nästa paket efter inlämning"
 
-#: src/ddtp_translate/main.py:245
+#: src/ddtp_translate/main.py:314
 msgid "Cache TTL (hours)"
 msgstr "Cache-TTL (timmar)"
 
-#: src/ddtp_translate/main.py:258
+#: src/ddtp_translate/main.py:322
+msgid "Sorting"
+msgstr "Sortering"
+
+#: src/ddtp_translate/main.py:323
+msgid "Default sort order for the package list."
+msgstr "Sorteringsordning som standard för paketlistan."
+
+#: src/ddtp_translate/main.py:326
+msgid "Default sort mode"
+msgstr "Sorteringsläge som standard"
+
+#: src/ddtp_translate/main.py:329 src/ddtp_translate/main.py:452
+msgid "Alphabetical"
+msgstr "Alfabetiskt"
+
+#: src/ddtp_translate/main.py:329 src/ddtp_translate/main.py:452
+msgid "By status"
+msgstr "Efter status"
+
+#: src/ddtp_translate/main.py:329
+msgid "By popularity (popcon)"
+msgstr "Efter popularitet (popcon)"
+
+#: src/ddtp_translate/main.py:337
+msgid "Fetch DDTSS statuses on load"
+msgstr "Hämta DDTSS-status vid inläsning"
+
+#: src/ddtp_translate/main.py:351
 msgid "Enter alias and password first"
 msgstr "Ange alias och lösenord först"
 
-#: src/ddtp_translate/main.py:266
+#: src/ddtp_translate/main.py:359
 msgid "Login successful!"
 msgstr "Inloggningen lyckades!"
 
-#: src/ddtp_translate/main.py:297 src/ddtp_translate/main.py:2635
+#: src/ddtp_translate/main.py:392 src/ddtp_translate/main.py:3233
 msgid "DDTP Translate"
 msgstr "Översätt DDTP"
 
-#: src/ddtp_translate/main.py:341 src/ddtp_translate/main.py:422
+#: src/ddtp_translate/main.py:445 src/ddtp_translate/main.py:556
 msgid "Refresh"
 msgstr "Uppdatera"
 
-#: src/ddtp_translate/main.py:346
-msgid "Sort packages"
-msgstr "Sortera paket"
+#: src/ddtp_translate/main.py:452
+msgid "By popularity"
+msgstr "Efter popularitet"
 
-#: src/ddtp_translate/main.py:353
+#: src/ddtp_translate/main.py:456
+msgid "Sort mode"
+msgstr "Sorteringsläge"
+
+#: src/ddtp_translate/main.py:463
+msgid "Sort direction"
+msgstr "Sorteringsriktning"
+
+#: src/ddtp_translate/main.py:472
+msgid "All packages"
+msgstr "Alla paket"
+
+#: src/ddtp_translate/main.py:473
+msgid "🔵 Not translated"
+msgstr "🔵 Inte översatt"
+
+#: src/ddtp_translate/main.py:474
+msgid "🟡 Submitted (not reviewed)"
+msgstr "🟡 Inskickad (inte granskad)"
+
+#: src/ddtp_translate/main.py:475
+msgid "🟠 Reviewed (with comments)"
+msgstr "🟠 Granskad (med kommentarer)"
+
+#: src/ddtp_translate/main.py:476
+msgid "🟢 Reviewed OK"
+msgstr "🟢 Granskad OK"
+
+#: src/ddtp_translate/main.py:481
+msgid "Filter by status"
+msgstr "Filtrera efter status"
+
+#: src/ddtp_translate/main.py:487
 msgid "Toggle heatmap view"
 msgstr "Växla värmekarta"
 
-#: src/ddtp_translate/main.py:375 src/ddtp_translate/main.py:438
+#: src/ddtp_translate/main.py:509 src/ddtp_translate/main.py:572
 msgid "Show Queue"
 msgstr "Visa kö"
 
-#: src/ddtp_translate/main.py:380 src/ddtp_translate/main.py:437
+#: src/ddtp_translate/main.py:514 src/ddtp_translate/main.py:571
 msgid "Review translations"
 msgstr "Granska översättningar"
 
-#: src/ddtp_translate/main.py:385 src/ddtp_translate/main.py:440
+#: src/ddtp_translate/main.py:519 src/ddtp_translate/main.py:574
 msgid "Statistics"
 msgstr "Statistik"
 
-#: src/ddtp_translate/main.py:390 src/ddtp_translate/main.py:2665
+#: src/ddtp_translate/main.py:524 src/ddtp_translate/main.py:3263
 msgid "Lint translation"
 msgstr "Linta översättning"
 
-#: src/ddtp_translate/main.py:395
+#: src/ddtp_translate/main.py:529
 msgid "Import translated PO file"
 msgstr "Importera översatt PO-fil"
 
-#: src/ddtp_translate/main.py:400
+#: src/ddtp_translate/main.py:534
 msgid "Export as PO file"
 msgstr "Exportera som PO-fil"
 
-#: src/ddtp_translate/main.py:408
+#: src/ddtp_translate/main.py:542
 msgid "Export as PO file…"
 msgstr "Exportera som PO-fil…"
 
-#: src/ddtp_translate/main.py:409
+#: src/ddtp_translate/main.py:543
 msgid "Import translated PO…"
 msgstr "Importera översatt PO…"
 
-#: src/ddtp_translate/main.py:413 src/ddtp_translate/main.py:574
+#: src/ddtp_translate/main.py:547 src/ddtp_translate/main.py:775
 msgid "Submit Now"
 msgstr "Skicka nu"
 
-#: src/ddtp_translate/main.py:416 src/ddtp_translate/main.py:568
+#: src/ddtp_translate/main.py:550 src/ddtp_translate/main.py:769
 msgid "Add to Queue"
 msgstr "Lägg till i kö"
 
-#: src/ddtp_translate/main.py:419
+#: src/ddtp_translate/main.py:553
 msgid "Lint Translation"
 msgstr "Linta översättning"
 
-#: src/ddtp_translate/main.py:428
+#: src/ddtp_translate/main.py:562
 msgid "Next Package"
 msgstr "Nästa paket"
 
-#: src/ddtp_translate/main.py:431
+#: src/ddtp_translate/main.py:565
 msgid "Previous Package"
 msgstr "Föregående paket"
 
-#: src/ddtp_translate/main.py:439
+#: src/ddtp_translate/main.py:573
 msgid "Clear queue"
 msgstr "Töm kö"
 
-#: src/ddtp_translate/main.py:444
+#: src/ddtp_translate/main.py:578
 msgid "Keyboard Shortcuts"
 msgstr "Tangentbordsgenvägar"
 
-#: src/ddtp_translate/main.py:448
+#: src/ddtp_translate/main.py:582
 msgid "About"
 msgstr "Om"
 
-#: src/ddtp_translate/main.py:463
+#: src/ddtp_translate/main.py:603 src/ddtp_translate/main.py:1499
+msgid "Translate"
+msgstr "Översätt"
+
+#: src/ddtp_translate/main.py:604
+msgid "Review"
+msgstr "Granska"
+
+#: src/ddtp_translate/main.py:643
 msgid "Filter packages…"
 msgstr "Filtrera paket…"
 
-#: src/ddtp_translate/main.py:523
+#: src/ddtp_translate/main.py:707
 msgid "Original (English)"
 msgstr "Original (engelska)"
 
-#: src/ddtp_translate/main.py:541 src/ddtp_translate/main.py:2660
+#: src/ddtp_translate/main.py:710
+msgid "Copy source text"
+msgstr "Kopiera källtext"
+
+#: src/ddtp_translate/main.py:732 src/ddtp_translate/main.py:3258
 msgid "Translation"
 msgstr "Översättning"
 
-#: src/ddtp_translate/main.py:569
+#: src/ddtp_translate/main.py:735
+msgid "Paste translation"
+msgstr "Klistra in översättning"
+
+#: src/ddtp_translate/main.py:762
+msgid "Auto-translate"
+msgstr "Översätt automatiskt"
+
+#: src/ddtp_translate/main.py:764
+msgid "Translate using po-translate"
+msgstr "Översätt med po-translate"
+
+#: src/ddtp_translate/main.py:770
 msgid "Add this translation to the send queue"
 msgstr "Lägg till denna översättning till sändningskön"
 
-#: src/ddtp_translate/main.py:591 src/ddtp_translate/main.py:814
-#: src/ddtp_translate/main.py:1633 src/ddtp_translate/main.py:1751
+#: src/ddtp_translate/main.py:792 src/ddtp_translate/main.py:1253
+#: src/ddtp_translate/main.py:2231 src/ddtp_translate/main.py:2349
 msgid "Ready"
 msgstr "Redo"
 
-#: src/ddtp_translate/main.py:627
+#: src/ddtp_translate/main.py:811 src/ddtp_translate/main.py:1846
+msgid "Review Translations"
+msgstr "Granska översättningar"
+
+#: src/ddtp_translate/main.py:812
+msgid ""
+"Review translations submitted by other users on DDTSS.\n"
+"\n"
+"Note: You cannot review your own translations. Another user must review them."
+msgstr ""
+"Granska översättningar som andra användare har skickat in till DDTSS.\n"
+"\n"
+"Observera! Du kan inte granska dina egna översättningar. En annan användare måste granska dem."
+
+#: src/ddtp_translate/main.py:817
+msgid "Open DDTSS Review Page"
+msgstr "Öppna DDTSS-granskningssidan"
+
+#: src/ddtp_translate/main.py:829
+msgid "Configure DDTSS credentials, display options, and workflow."
+msgstr ""
+"Konfigurera autentiseringsuppgifter för DDTSS, visningsalternativ och "
+"arbetsflöde."
+
+#: src/ddtp_translate/main.py:831
+msgid "Open Settings"
+msgstr "Öppna inställningar"
+
+#: src/ddtp_translate/main.py:886
 #, python-brace-format
 msgid "{untranslated} untranslated | {queue} in queue | {sent} submitted"
 msgstr "{untranslated} icke-översatta | {queue} i kö | {sent} inlämnade"
 
-#: src/ddtp_translate/main.py:636
+#: src/ddtp_translate/main.py:895
 msgid "logged in"
 msgstr "inloggad"
 
-#: src/ddtp_translate/main.py:636
+#: src/ddtp_translate/main.py:895
 msgid "not logged in"
 msgstr "inte inloggad"
 
-#: src/ddtp_translate/main.py:649
+#: src/ddtp_translate/main.py:908
 #, python-brace-format
 msgid "{s} seconds"
 msgstr "{s} sekunder"
 
-#: src/ddtp_translate/main.py:652
+#: src/ddtp_translate/main.py:911
 #, python-brace-format
 msgid "{m} minutes"
 msgstr "{m} minuter"
 
-#: src/ddtp_translate/main.py:654
+#: src/ddtp_translate/main.py:913
 #, python-brace-format
 msgid "{h}h {m}m"
 msgstr "{h}h {m}m"
 
-#: src/ddtp_translate/main.py:678
+#: src/ddtp_translate/main.py:969
+#, python-brace-format
+msgid "{shown} of {total}"
+msgstr "{shown} av {total}"
+
+#: src/ddtp_translate/main.py:972
+#, python-brace-format
+msgid "{n} packages"
+msgstr "{n} paket"
+
+#: src/ddtp_translate/main.py:985
 msgid "Loading…"
 msgstr "Läser in…"
 
-#: src/ddtp_translate/main.py:681
+#: src/ddtp_translate/main.py:988
 msgid "Downloading package data…"
 msgstr "Hämtar ner paketdata…"
 
-#: src/ddtp_translate/main.py:729
+#: src/ddtp_translate/main.py:1036
 #, python-brace-format
 msgid "{n} packages loaded"
 msgstr "{n} paket inlästa"
 
-#: src/ddtp_translate/main.py:736
-#, python-brace-format
-msgid "{shown} of {total} untranslated"
-msgstr "{shown} av {total} icke-översatta"
-
-#: src/ddtp_translate/main.py:745
+#: src/ddtp_translate/main.py:1050
 msgid ""
 "Could not connect to DDTP servers. Check your internet connection and try "
 "again."
@@ -267,96 +385,206 @@ msgstr ""
 "Misslyckades med att ansluta till DDTP-servrarna. Kontrollera din "
 "internetanslutning och försök igen."
 
-#: src/ddtp_translate/main.py:747
+#: src/ddtp_translate/main.py:1052
 #, python-brace-format
 msgid "Failed to load packages: {error}"
 msgstr "Misslyckades med att läsa in paketen: {error}"
 
-#: src/ddtp_translate/main.py:772
+#: src/ddtp_translate/main.py:1100
+#, python-brace-format
+msgid "DDTSS status fetch failed: {e}"
+msgstr "Hämtning av DDTSS-status misslyckades: {e}"
+
+#: src/ddtp_translate/main.py:1181
 msgid "Submitted ✅"
 msgstr "Inskickad ✅"
 
-#: src/ddtp_translate/main.py:777
+#: src/ddtp_translate/main.py:1186
 msgid "Submission error ⚠️"
 msgstr "Fel vid inlämning ⚠️"
 
-#: src/ddtp_translate/main.py:782
+#: src/ddtp_translate/main.py:1191
 msgid "In queue 📬"
 msgstr "I kö 📬"
 
-#: src/ddtp_translate/main.py:787
+#: src/ddtp_translate/main.py:1196
 msgid "Modified — not in queue 📝"
 msgstr "Ändrad — inte i kö 📝"
 
-#: src/ddtp_translate/main.py:813
+#: src/ddtp_translate/main.py:1204
+msgid "Reviewed OK ✅"
+msgstr "Granskad OK ✅"
+
+#: src/ddtp_translate/main.py:1209
+msgid "Reviewed (with comments) 🟠"
+msgstr "Granskad (med kommentarer) 🟠"
+
+#: src/ddtp_translate/main.py:1214
+msgid "Submitted, not reviewed 🟡"
+msgstr "Inskickad, inte granskad 🟡"
+
+#: src/ddtp_translate/main.py:1220
+msgid "Not translated 🔵"
+msgstr "Inte översatt 🔵"
+
+#: src/ddtp_translate/main.py:1244
+#, python-brace-format
+msgid "Popcon installs: {n}"
+msgstr "Popcon-installationer: {n}"
+
+#: src/ddtp_translate/main.py:1252
 #, python-brace-format
 msgid "{n} untranslated"
 msgstr "{n} icke-översatta"
 
-#: src/ddtp_translate/main.py:896
+#: src/ddtp_translate/main.py:1350
+msgid "submitted, awaiting review"
+msgstr "inskickad, inväntar granskning"
+
+#: src/ddtp_translate/main.py:1351
+msgid "reviewed with comments"
+msgstr "granskad med kommentarer"
+
+#: src/ddtp_translate/main.py:1352
+msgid "reviewed OK"
+msgstr "granskad OK"
+
+#: src/ddtp_translate/main.py:1361
 #, python-brace-format
 msgid "Editing: {pkg}"
 msgstr "Redigerar: {pkg}"
 
-#: src/ddtp_translate/main.py:922 src/ddtp_translate/main.py:1005
+#: src/ddtp_translate/main.py:1391 src/ddtp_translate/main.py:1603
 msgid "Translation is empty"
 msgstr "Översättningen är tom"
 
-#: src/ddtp_translate/main.py:927 src/ddtp_translate/main.py:1214
-#: src/ddtp_translate/main.py:1782
+#: src/ddtp_translate/main.py:1396 src/ddtp_translate/main.py:1812
+#: src/ddtp_translate/main.py:2380
 msgid "DDTSS not configured — open Preferences first"
 msgstr "DDTSS är inte konfigurerat – öppna Inställningar först"
 
-#: src/ddtp_translate/main.py:937
+#: src/ddtp_translate/main.py:1406
 msgid "Sending…"
 msgstr "Skickar…"
 
-#: src/ddtp_translate/main.py:958
+#: src/ddtp_translate/main.py:1427
 #, python-brace-format
 msgid "Login failed: {e}"
 msgstr "Inloggning misslyckades: {e}"
 
-#: src/ddtp_translate/main.py:962
+#: src/ddtp_translate/main.py:1431
 #, python-brace-format
 msgid "Validation error: {e}"
 msgstr "Valideringsfel: {e}"
 
-#: src/ddtp_translate/main.py:966
+#: src/ddtp_translate/main.py:1435
 #, python-brace-format
 msgid "Package locked: {e}"
 msgstr "Paketet är låst: {e}"
 
-#: src/ddtp_translate/main.py:970 src/ddtp_translate/main.py:1229
-#: src/ddtp_translate/main.py:1386
+#: src/ddtp_translate/main.py:1439 src/ddtp_translate/main.py:1827
+#: src/ddtp_translate/main.py:1984
 #, python-brace-format
 msgid "Error: {e}"
 msgstr "Fel: {e}"
 
-#: src/ddtp_translate/main.py:977
+#: src/ddtp_translate/main.py:1451
+msgid "Source text copied to clipboard"
+msgstr "Källtext kopierad till urklipp"
+
+#: src/ddtp_translate/main.py:1463
+msgid "Translation pasted from clipboard"
+msgstr "Översättning inklistrad från urklipp"
+
+#: src/ddtp_translate/main.py:1465
+msgid "Failed to paste from clipboard"
+msgstr "Misslyckades med att klistra in från urklipp"
+
+#: src/ddtp_translate/main.py:1474
+msgid "po-translate not found"
+msgstr "po-translate hittades inte"
+
+#: src/ddtp_translate/main.py:1475
+msgid ""
+"po-translate is not installed. Install it with:\n"
+"\n"
+"pip install po-translate\n"
+"\n"
+"or via your package manager."
+msgstr ""
+"po-translate är inte installerat. Installera det med:\n"
+"\n"
+"pip install po-translate\n"
+"\n"
+"eller via din pakethanterare."
+
+#: src/ddtp_translate/main.py:1491
+msgid "AI Translation Warning"
+msgstr "AI-översättningsvarning"
+
+#: src/ddtp_translate/main.py:1492
+msgid ""
+"po-translate uses AI to generate translations. You MUST carefully review and edit the translation before submitting it for review on DDTSS.\n"
+"\n"
+"Machine translations often contain errors in terminology, grammar, and style."
+msgstr ""
+"po-translate använder AI för att generera översättningar. Du MÅSTE noggrant granska och redigera översättningen innan du skickar in den för granskning på DDTSS.\n"
+"\n"
+"Maskinöversättningar innehåller ofta fel i terminologi, grammatik och stil."
+
+#: src/ddtp_translate/main.py:1498 src/ddtp_translate/main.py:1935
+#: src/ddtp_translate/main.py:2395 src/ddtp_translate/main.py:2448
+#: src/ddtp_translate/main.py:2565 src/ddtp_translate/main.py:2667
+#: src/ddtp_translate/main.py:2916
+msgid "Cancel"
+msgstr "Avbryt"
+
+#: src/ddtp_translate/main.py:1510
+msgid "Translating with po-translate…"
+msgstr "Översätter med po-translate…"
+
+#: src/ddtp_translate/main.py:1539
+msgid "po-translate failed"
+msgstr "po-translate misslyckades"
+
+#: src/ddtp_translate/main.py:1559
+msgid "Translation timed out"
+msgstr "Översättning översteg tidsgräns"
+
+#: src/ddtp_translate/main.py:1568
+#, python-brace-format
+msgid "Auto-translate failed: {e}"
+msgstr "Automatisk översättning misslyckades: {e}"
+
+#: src/ddtp_translate/main.py:1571
+msgid "⚠️ AI-translated — review carefully before submitting!"
+msgstr "⚠️ AI-översatt — granska noggrant innan du skickar in!"
+
+#: src/ddtp_translate/main.py:1575
 msgid "Sent successfully!"
 msgstr "Inskickad!"
 
-#: src/ddtp_translate/main.py:980
+#: src/ddtp_translate/main.py:1578
 msgid "Translation submitted"
 msgstr "Översättning inskickad"
 
-#: src/ddtp_translate/main.py:981
+#: src/ddtp_translate/main.py:1579
 #, python-brace-format
 msgid ""
 "Package \"{pkg}\" was submitted successfully and is now pending review on "
 "DDTSS."
 msgstr "Paketet ”{pkg}” har skickats in och väntar nu på granskning på DDTSS."
 
-#: src/ddtp_translate/main.py:983 src/ddtp_translate/main.py:992
-#: src/ddtp_translate/main.py:1613
+#: src/ddtp_translate/main.py:1581 src/ddtp_translate/main.py:1590
+#: src/ddtp_translate/main.py:2211
 msgid "OK"
 msgstr "OK"
 
-#: src/ddtp_translate/main.py:989
+#: src/ddtp_translate/main.py:1587
 msgid "Submission failed"
 msgstr "Inlämning misslyckades"
 
-#: src/ddtp_translate/main.py:990
+#: src/ddtp_translate/main.py:1588
 #, python-brace-format
 msgid ""
 "Package \"{pkg}\" could not be submitted.\n"
@@ -367,240 +595,230 @@ msgstr ""
 "\n"
 "{err}"
 
-#: src/ddtp_translate/main.py:1025
+#: src/ddtp_translate/main.py:1623
 #, python-brace-format
 msgid "Updated {pkg} in queue"
 msgstr "Uppdaterade {pkg} i kö"
 
-#: src/ddtp_translate/main.py:1035
+#: src/ddtp_translate/main.py:1633
 #, python-brace-format
 msgid "Added {pkg} to queue ({n} total)"
 msgstr "Lade till {pkg} till kön ({n} totalt)"
 
-#: src/ddtp_translate/main.py:1084
+#: src/ddtp_translate/main.py:1682
 #, python-brace-format
 msgid "Removed {pkg} from queue"
 msgstr "Tog bort {pkg} från kö"
 
-#: src/ddtp_translate/main.py:1091
+#: src/ddtp_translate/main.py:1689
 msgid "Send Queue"
 msgstr "Sändningskö"
 
-#: src/ddtp_translate/main.py:1101
+#: src/ddtp_translate/main.py:1699
 msgid "Sort queue"
 msgstr "Sortera kö"
 
-#: src/ddtp_translate/main.py:1119
+#: src/ddtp_translate/main.py:1717
 #, python-brace-format
 msgid "{n} ready"
 msgstr "{n} klara"
 
-#: src/ddtp_translate/main.py:1121
+#: src/ddtp_translate/main.py:1719
 #, python-brace-format
 msgid "{n} sent ✅"
 msgstr "{n} skickade ✅"
 
-#: src/ddtp_translate/main.py:1123
+#: src/ddtp_translate/main.py:1721
 #, python-brace-format
 msgid "{n} errors"
 msgstr "{n} fel"
 
-#: src/ddtp_translate/main.py:1126
+#: src/ddtp_translate/main.py:1724
 msgid "Queue is empty"
 msgstr "Kön är tom"
 
-#: src/ddtp_translate/main.py:1143
+#: src/ddtp_translate/main.py:1741
 msgid "Clear sent ✅"
 msgstr "Töm inskickade ✅"
 
-#: src/ddtp_translate/main.py:1147
+#: src/ddtp_translate/main.py:1745
 msgid "Clear all"
 msgstr "Töm allt"
 
-#: src/ddtp_translate/main.py:1152
+#: src/ddtp_translate/main.py:1750
 #, python-brace-format
 msgid "Send All ({n})"
 msgstr "Skicka alla ({n})"
 
-#: src/ddtp_translate/main.py:1190
+#: src/ddtp_translate/main.py:1788
 msgid "Error"
 msgstr "Fel"
 
-#: src/ddtp_translate/main.py:1197
+#: src/ddtp_translate/main.py:1795
 msgid "Remove from queue"
 msgstr "Ta bort från kö"
 
-#: src/ddtp_translate/main.py:1217
+#: src/ddtp_translate/main.py:1815
 msgid "Loading reviews…"
 msgstr "Läser in granskningar…"
 
-#: src/ddtp_translate/main.py:1248
-msgid "Review Translations"
-msgstr "Granska översättningar"
-
-#: src/ddtp_translate/main.py:1258
+#: src/ddtp_translate/main.py:1856
 #, python-brace-format
 msgid "Accept All ({n})"
 msgstr "Acceptera alla ({n})"
 
-#: src/ddtp_translate/main.py:1271
+#: src/ddtp_translate/main.py:1869
 msgid "No pending reviews"
 msgstr "Inga väntande granskningar"
 
-#: src/ddtp_translate/main.py:1272
+#: src/ddtp_translate/main.py:1870
 msgid "There are no translations waiting for review."
 msgstr "Det finns inga översättningar som väntar på granskning."
 
-#: src/ddtp_translate/main.py:1290
+#: src/ddtp_translate/main.py:1888
 #, python-brace-format
 msgid "Pending review ({n})"
 msgstr "Väntar på granskning ({n})"
 
-#: src/ddtp_translate/main.py:1304
+#: src/ddtp_translate/main.py:1902
 #, python-brace-format
 msgid "Reviewed by you ({n})"
 msgstr "Granskade av dig ({n})"
 
-#: src/ddtp_translate/main.py:1319
+#: src/ddtp_translate/main.py:1917
 #, python-brace-format
 msgid "{pending} pending, {reviewed} reviewed by you"
 msgstr "{pending} väntar, {reviewed} granskade av dig"
 
-#: src/ddtp_translate/main.py:1334
+#: src/ddtp_translate/main.py:1932
 #, python-brace-format
 msgid "Accept all {n} reviews?"
 msgstr "Acceptera alla {n} granskningar?"
 
-#: src/ddtp_translate/main.py:1335
+#: src/ddtp_translate/main.py:1933
 msgid ""
 "This will accept all pending translations as-is. This cannot be undone."
 msgstr ""
 "Detta kommer att acceptera alla väntande översättningar som de är. Detta kan"
 " inte ångras."
 
-#: src/ddtp_translate/main.py:1337 src/ddtp_translate/main.py:1797
-#: src/ddtp_translate/main.py:1850 src/ddtp_translate/main.py:1967
-#: src/ddtp_translate/main.py:2069 src/ddtp_translate/main.py:2318
-msgid "Cancel"
-msgstr "Avbryt"
-
-#: src/ddtp_translate/main.py:1338
+#: src/ddtp_translate/main.py:1936
 msgid "Accept All"
 msgstr "Acceptera alla"
 
-#: src/ddtp_translate/main.py:1352
+#: src/ddtp_translate/main.py:1950
 #, python-brace-format
 msgid "Accepting {n} reviews…"
 msgstr "Accepterar {n} granskningar…"
 
-#: src/ddtp_translate/main.py:1369
+#: src/ddtp_translate/main.py:1967
 #, python-brace-format
 msgid "Accepted {accepted} reviews, {errors} errors"
 msgstr "Accepterade {accepted} granskningar, {errors} fel"
 
-#: src/ddtp_translate/main.py:1376
+#: src/ddtp_translate/main.py:1974
 #, python-brace-format
 msgid "Loading review for {pkg}…"
 msgstr "Läser in granskning för {pkg}…"
 
-#: src/ddtp_translate/main.py:1395
+#: src/ddtp_translate/main.py:1993
 #, python-brace-format
 msgid "Review: {pkg}"
 msgstr "Granska: {pkg}"
 
-#: src/ddtp_translate/main.py:1404
+#: src/ddtp_translate/main.py:2002
 msgid "Back to list"
 msgstr "Tillbaka till listan"
 
-#: src/ddtp_translate/main.py:1410
+#: src/ddtp_translate/main.py:2008
 msgid "Previous review (Ctrl+P)"
 msgstr "Föregående granskning (Ctrl+P)"
 
-#: src/ddtp_translate/main.py:1411
+#: src/ddtp_translate/main.py:2009
 msgid "Next review (Ctrl+N)"
 msgstr "Nästa granskning (Ctrl+N)"
 
-#: src/ddtp_translate/main.py:1465
+#: src/ddtp_translate/main.py:2063
 #, python-brace-format
 msgid "Owner: {owner}"
 msgstr "Ägare: {owner}"
 
-#: src/ddtp_translate/main.py:1469
+#: src/ddtp_translate/main.py:2067
 msgid "Original short description"
 msgstr "Ursprunglig kort beskrivning"
 
-#: src/ddtp_translate/main.py:1478
+#: src/ddtp_translate/main.py:2076
 msgid "Translated short description"
 msgstr "Översatt kort beskrivning"
 
-#: src/ddtp_translate/main.py:1486
+#: src/ddtp_translate/main.py:2084
 msgid "Original long description"
 msgstr "Ursprunglig lång beskrivning"
 
-#: src/ddtp_translate/main.py:1495
+#: src/ddtp_translate/main.py:2093
 msgid "Translated long description"
 msgstr "Översatt lång beskrivning"
 
-#: src/ddtp_translate/main.py:1508
+#: src/ddtp_translate/main.py:2106
 msgid "Comment (optional)"
 msgstr "Kommentar (valfritt)"
 
-#: src/ddtp_translate/main.py:1521
+#: src/ddtp_translate/main.py:2119
 msgid "Log"
 msgstr "Logg"
 
-#: src/ddtp_translate/main.py:1547
+#: src/ddtp_translate/main.py:2145
 msgid "Submitting review…"
 msgstr "Skickar in granskning…"
 
-#: src/ddtp_translate/main.py:1570
+#: src/ddtp_translate/main.py:2168
 msgid "Comment only"
 msgstr "Kommentera endast"
 
-#: src/ddtp_translate/main.py:1571
+#: src/ddtp_translate/main.py:2169
 msgid "Save comment without accepting"
 msgstr "Spara kommentar utan att godkänna"
 
-#: src/ddtp_translate/main.py:1575
+#: src/ddtp_translate/main.py:2173
 msgid "Accept with changes"
 msgstr "Godkänn med ändringar"
 
-#: src/ddtp_translate/main.py:1577
+#: src/ddtp_translate/main.py:2175
 msgid "Accept translation with your modifications — restarts review"
 msgstr "Godkänn översättning med dina ändringar — börjar om granskning"
 
-#: src/ddtp_translate/main.py:1581
+#: src/ddtp_translate/main.py:2179
 msgid "Accept as is"
 msgstr "Godkänn som den är"
 
-#: src/ddtp_translate/main.py:1583
+#: src/ddtp_translate/main.py:2181
 msgid "Accept translation without changes"
 msgstr "Godkänn översättning utan ändringar"
 
-#: src/ddtp_translate/main.py:1594
+#: src/ddtp_translate/main.py:2192
 #, python-brace-format
 msgid "Translation for \"{pkg}\" accepted."
 msgstr "Översättning för \"{pkg}\" godkänd."
 
-#: src/ddtp_translate/main.py:1596
+#: src/ddtp_translate/main.py:2194
 #, python-brace-format
 msgid "Translation for \"{pkg}\" accepted with changes (review restarted)."
 msgstr "Översättning för \"{pkg}\" godkänd med ändringar (granskning börjar om)."
 
-#: src/ddtp_translate/main.py:1598
+#: src/ddtp_translate/main.py:2196
 #, python-brace-format
 msgid "Comment saved for \"{pkg}\"."
 msgstr "Kommentar sparad för \"{pkg}\"."
 
-#: src/ddtp_translate/main.py:1602
+#: src/ddtp_translate/main.py:2200
 msgid "Review submitted"
 msgstr "Granskning inskickad"
 
-#: src/ddtp_translate/main.py:1609
+#: src/ddtp_translate/main.py:2207
 msgid "Review failed"
 msgstr "Granskning misslyckades"
 
-#: src/ddtp_translate/main.py:1610
+#: src/ddtp_translate/main.py:2208
 #, python-brace-format
 msgid ""
 "Could not submit review for \"{pkg}\".\n"
@@ -611,16 +829,16 @@ msgstr ""
 "\n"
 "{err}"
 
-#: src/ddtp_translate/main.py:1620
+#: src/ddtp_translate/main.py:2218
 msgid "Fetching statistics…"
 msgstr "Hämtar statistik…"
 
-#: src/ddtp_translate/main.py:1628
+#: src/ddtp_translate/main.py:2226
 #, python-brace-format
 msgid "Failed to fetch statistics: {e}"
 msgstr "Misslyckades med att hämta statistik: {e}"
 
-#: src/ddtp_translate/main.py:1652
+#: src/ddtp_translate/main.py:2250
 #, python-format, python-brace-format
 msgid ""
 "Language: {lang} ({code})\n"
@@ -645,28 +863,28 @@ msgstr ""
 "\n"
 "Fullbordande: {pct:.1f}% of aktiva paket"
 
-#: src/ddtp_translate/main.py:1668
+#: src/ddtp_translate/main.py:2266
 msgid "DDTP Statistics"
 msgstr "DDTP-statistik"
 
-#: src/ddtp_translate/main.py:1671 src/ddtp_translate/main.py:1705
-#: src/ddtp_translate/main.py:1769 src/ddtp_translate/main.py:1855
+#: src/ddtp_translate/main.py:2269 src/ddtp_translate/main.py:2303
+#: src/ddtp_translate/main.py:2367 src/ddtp_translate/main.py:2453
 msgid "Close"
 msgstr "Stäng"
 
-#: src/ddtp_translate/main.py:1684
+#: src/ddtp_translate/main.py:2282
 msgid "No package selected"
 msgstr "Inget paket valt"
 
-#: src/ddtp_translate/main.py:1690
+#: src/ddtp_translate/main.py:2288
 msgid "Translation is empty — nothing to lint"
 msgstr "Översättningen är tom — inget att linta"
 
-#: src/ddtp_translate/main.py:1696
+#: src/ddtp_translate/main.py:2294
 msgid "l10n-lint not found"
 msgstr "l10n-lint hittades inte"
 
-#: src/ddtp_translate/main.py:1698
+#: src/ddtp_translate/main.py:2296
 msgid ""
 "l10n-lint is not installed.\n"
 "\n"
@@ -684,42 +902,42 @@ msgstr ""
 "Eller på Debian/Ubuntu:\n"
 "  apt install l10n-lint"
 
-#: src/ddtp_translate/main.py:1727
+#: src/ddtp_translate/main.py:2325
 msgid "Running l10n-lint…"
 msgstr "Kör l10n-lint…"
 
-#: src/ddtp_translate/main.py:1746
+#: src/ddtp_translate/main.py:2344
 #, python-brace-format
 msgid "Lint error: {e}"
 msgstr "Lint-fel: {e}"
 
-#: src/ddtp_translate/main.py:1753
+#: src/ddtp_translate/main.py:2351
 msgid "Lint: No issues found ✓"
 msgstr "Lint: Inga problem hittades ✓"
 
-#: src/ddtp_translate/main.py:1754
+#: src/ddtp_translate/main.py:2352
 msgid "The translation passed all lint checks."
 msgstr "Översättningen klarade alla lint-kontroller."
 
-#: src/ddtp_translate/main.py:1756
+#: src/ddtp_translate/main.py:2354
 msgid "Lint: Passed with notes"
 msgstr "Lint: Godkänt med anmärkningar"
 
-#: src/ddtp_translate/main.py:1759
+#: src/ddtp_translate/main.py:2357
 msgid "Lint: Issues found"
 msgstr "Lint: Problem hittades"
 
-#: src/ddtp_translate/main.py:1760
+#: src/ddtp_translate/main.py:2358
 #, python-brace-format
 msgid "l10n-lint reported errors (exit code {c})."
 msgstr "l10n-lint rapporterade fel (avslutningskod {c})."
 
-#: src/ddtp_translate/main.py:1788
+#: src/ddtp_translate/main.py:2386
 #, python-brace-format
 msgid "Submit {n} translations via DDTSS?"
 msgstr "Skicka in {n} översättningar via DDTSS?"
 
-#: src/ddtp_translate/main.py:1790
+#: src/ddtp_translate/main.py:2388
 #, python-brace-format
 msgid ""
 "You are about to submit {n} translation(s) to the DDTSS web interface.\n"
@@ -736,67 +954,67 @@ msgstr ""
 "• Du kan avbryta processen när som helst\n"
 "• Eventuella fel visas per paket"
 
-#: src/ddtp_translate/main.py:1798
+#: src/ddtp_translate/main.py:2396
 msgid "Submit All"
 msgstr "Skicka in alla"
 
-#: src/ddtp_translate/main.py:1816
+#: src/ddtp_translate/main.py:2414
 msgid "Sending Translations"
 msgstr "Skickar översättningar"
 
-#: src/ddtp_translate/main.py:1828
+#: src/ddtp_translate/main.py:2426
 msgid "Sending translations…"
 msgstr "Skickar översättningar…"
 
-#: src/ddtp_translate/main.py:1876
+#: src/ddtp_translate/main.py:2474
 msgid "⏸ Cancelling…"
 msgstr "⏸ Avbryter…"
 
-#: src/ddtp_translate/main.py:1889
+#: src/ddtp_translate/main.py:2487
 #, python-brace-format
 msgid "❌ Cancelled by user. {sent}/{total} sent."
 msgstr "❌ Avbröts av användaren. {sent}/{total} skickade."
 
-#: src/ddtp_translate/main.py:1896
+#: src/ddtp_translate/main.py:2494
 #, python-brace-format
 msgid "Sending: {pkg} ({i}/{total})"
 msgstr "Skickar: {pkg} ({i}/{total})"
 
-#: src/ddtp_translate/main.py:1927
+#: src/ddtp_translate/main.py:2525
 #, python-brace-format
 msgid "Done! {sent} sent, {errors} errors out of {total}"
 msgstr "Färdig! {sent} skickade, {errors} fel av totalt {total}"
 
-#: src/ddtp_translate/main.py:1932
+#: src/ddtp_translate/main.py:2530
 #, python-brace-format
 msgid "All {n} translations submitted"
 msgstr "Alla {n} översättningar inskickade"
 
-#: src/ddtp_translate/main.py:1934
+#: src/ddtp_translate/main.py:2532
 #, python-brace-format
 msgid "All {n} submissions failed"
 msgstr "Alla {n} inlämningar misslyckades"
 
-#: src/ddtp_translate/main.py:1936
+#: src/ddtp_translate/main.py:2534
 #, python-brace-format
 msgid "{sent} sent, {errors} failed"
 msgstr "{sent} skickade, {errors} misslyckades"
 
-#: src/ddtp_translate/main.py:1954
+#: src/ddtp_translate/main.py:2552
 #, python-brace-format
 msgid "{n} translation(s) in queue not yet submitted"
 msgstr "{n} översättning(ar) i kö ännu inte inskickade"
 
-#: src/ddtp_translate/main.py:1956
+#: src/ddtp_translate/main.py:2554
 #, python-brace-format
 msgid "{n} translation(s) modified but not added to queue"
 msgstr "{n} översättning(ar) ändrade men ligger inte i kön"
 
-#: src/ddtp_translate/main.py:1963
+#: src/ddtp_translate/main.py:2561
 msgid "Quit DDTP Translate?"
 msgstr "Avsluta Översätt DDTP?"
 
-#: src/ddtp_translate/main.py:1964
+#: src/ddtp_translate/main.py:2562
 #, python-brace-format
 msgid ""
 "You have unsaved work:\n"
@@ -811,57 +1029,57 @@ msgstr ""
 "\n"
 "Detta går förlorat om du avslutar."
 
-#: src/ddtp_translate/main.py:1968
+#: src/ddtp_translate/main.py:2566
 msgid "Quit anyway"
 msgstr "Avsluta ändå"
 
-#: src/ddtp_translate/main.py:1986
+#: src/ddtp_translate/main.py:2584
 msgid "No packages loaded to export"
 msgstr "Inga paket lästes in att exportera"
 
-#: src/ddtp_translate/main.py:1991
+#: src/ddtp_translate/main.py:2589
 msgid "Export PO — Filter"
 msgstr "Exportera PO — Filter"
 
-#: src/ddtp_translate/main.py:2004
+#: src/ddtp_translate/main.py:2602
 msgid "Filter Options"
 msgstr "Filteralternativ"
 
-#: src/ddtp_translate/main.py:2005
+#: src/ddtp_translate/main.py:2603
 msgid "Narrow down which packages to export."
 msgstr "Begränsa vilka paket som ska exporteras."
 
-#: src/ddtp_translate/main.py:2009
+#: src/ddtp_translate/main.py:2607
 msgid "Max number of packages (0 = all)"
 msgstr "Maximalt antal paket (0 = alla)"
 
-#: src/ddtp_translate/main.py:2013
+#: src/ddtp_translate/main.py:2611
 msgid "Starting letter"
 msgstr "Första bokstaven"
 
-#: src/ddtp_translate/main.py:2017
+#: src/ddtp_translate/main.py:2615
 msgid "Regex filter"
 msgstr "Regex-filter"
 
-#: src/ddtp_translate/main.py:2025 src/ddtp_translate/main.py:2056
+#: src/ddtp_translate/main.py:2623 src/ddtp_translate/main.py:2654
 #, python-brace-format
 msgid "Matching: {x} of {y} packages"
 msgstr "Matchar: {x} av {y} paket"
 
-#: src/ddtp_translate/main.py:2073
+#: src/ddtp_translate/main.py:2671
 msgid "Export"
 msgstr "Exportera"
 
-#: src/ddtp_translate/main.py:2091 src/ddtp_translate/main.py:2160
+#: src/ddtp_translate/main.py:2689 src/ddtp_translate/main.py:2758
 msgid "PO files"
 msgstr "PO-filer"
 
-#: src/ddtp_translate/main.py:2137
+#: src/ddtp_translate/main.py:2735
 #, python-brace-format
 msgid "Exported {n} packages to {path}"
 msgstr "Exporterade {n} paket till {path}"
 
-#: src/ddtp_translate/main.py:2177
+#: src/ddtp_translate/main.py:2775
 msgid ""
 "No translated entries found in file (only entries with translations are "
 "imported)"
@@ -869,49 +1087,49 @@ msgstr ""
 "Inga översatta poster hittades i filen (endast poster med översättningar "
 "importeras)"
 
-#: src/ddtp_translate/main.py:2188
+#: src/ddtp_translate/main.py:2786
 #, python-brace-format
 msgid "Import Review — {n} translations"
 msgstr "Importera granskning — {n} översättningar"
 
-#: src/ddtp_translate/main.py:2220
+#: src/ddtp_translate/main.py:2818
 msgid "Select a translation to preview"
 msgstr "Välj en översättning att förhandsgranska"
 
-#: src/ddtp_translate/main.py:2243
+#: src/ddtp_translate/main.py:2841
 msgid "Checking…"
 msgstr "Kontrollerar…"
 
-#: src/ddtp_translate/main.py:2301
+#: src/ddtp_translate/main.py:2899
 msgid "l10n-lint not installed — skipping lint checks"
 msgstr "l10n-lint är inte installerat — hoppar över lint-kontroller"
 
-#: src/ddtp_translate/main.py:2322
+#: src/ddtp_translate/main.py:2920
 msgid "Add Selected to Queue"
 msgstr "Lägg till markerade i kö"
 
-#: src/ddtp_translate/main.py:2329
+#: src/ddtp_translate/main.py:2927
 msgid "Add All to Queue"
 msgstr "Lägg till alla i kö"
 
-#: src/ddtp_translate/main.py:2352
+#: src/ddtp_translate/main.py:2950
 msgid "Lint OK ✅"
 msgstr "Lint OK ✅"
 
-#: src/ddtp_translate/main.py:2356
+#: src/ddtp_translate/main.py:2954
 msgid "Lint issues ⚠️"
 msgstr "Lint-problem ⚠️"
 
-#: src/ddtp_translate/main.py:2385 src/ddtp_translate/main.py:2411
+#: src/ddtp_translate/main.py:2983 src/ddtp_translate/main.py:3009
 #, python-brace-format
 msgid "Imported {added} new, {updated} updated — {total} in queue"
 msgstr "Importerade {added} nya, {updated} uppdaterade — {total} i kö"
 
-#: src/ddtp_translate/main.py:2531
+#: src/ddtp_translate/main.py:3129
 msgid "Welcome to DDTP Translate"
 msgstr "Välkommen till Översätt DDTP"
 
-#: src/ddtp_translate/main.py:2533
+#: src/ddtp_translate/main.py:3131
 msgid ""
 "This app helps you translate Debian package descriptions through the Debian Description Translation Project (DDTP).\n"
 "\n"
@@ -939,60 +1157,60 @@ msgstr ""
 "\n"
 "Innan du skickar, konfigurera ditt DDTSS-konto i Inställningar."
 
-#: src/ddtp_translate/main.py:2546
+#: src/ddtp_translate/main.py:3144
 msgid "Get Started"
 msgstr "Kom igång"
 
-#: src/ddtp_translate/main.py:2645
+#: src/ddtp_translate/main.py:3243
 msgid ""
 "Translate this app: https://www.transifex.com/danielnylander/ddtp-translate/"
 msgstr ""
 "Översätt denna app: https://www.transifex.com/danielnylander/ddtp-translate/"
 
-#: src/ddtp_translate/main.py:2646
+#: src/ddtp_translate/main.py:3244
 msgid "Translate Debian package descriptions via DDTP"
 msgstr "Översätt Debian-paketbeskrivningar via DDTP"
 
-#: src/ddtp_translate/main.py:2657
+#: src/ddtp_translate/main.py:3255
 msgid "Shortcuts"
 msgstr "Genvägar"
 
-#: src/ddtp_translate/main.py:2663
+#: src/ddtp_translate/main.py:3261
 msgid "Submit current translation"
 msgstr "Skicka in aktuell översättning"
 
-#: src/ddtp_translate/main.py:2664
+#: src/ddtp_translate/main.py:3262
 msgid "Add to queue"
 msgstr "Lägg till i kö"
 
-#: src/ddtp_translate/main.py:2666
+#: src/ddtp_translate/main.py:3264
 msgid "Refresh packages"
 msgstr "Uppdatera paket"
 
-#: src/ddtp_translate/main.py:2673
+#: src/ddtp_translate/main.py:3271
 msgid "Navigation"
 msgstr "Navigering"
 
-#: src/ddtp_translate/main.py:2676
+#: src/ddtp_translate/main.py:3274
 msgid "Next package"
 msgstr "Nästa paket"
 
-#: src/ddtp_translate/main.py:2677
+#: src/ddtp_translate/main.py:3275
 msgid "Previous package"
 msgstr "Föregående paket"
 
-#: src/ddtp_translate/main.py:2678
+#: src/ddtp_translate/main.py:3276
 msgid "Focus search"
 msgstr "Fokusera sökning"
 
-#: src/ddtp_translate/main.py:2685
+#: src/ddtp_translate/main.py:3283
 msgid "Application"
 msgstr "Applikation"
 
-#: src/ddtp_translate/main.py:2688
+#: src/ddtp_translate/main.py:3286
 msgid "Quit"
 msgstr "Avsluta"
 
-#: src/ddtp_translate/main.py:2689
+#: src/ddtp_translate/main.py:3287
 msgid "Keyboard shortcuts"
 msgstr "Tangentbordsgenvägar"
