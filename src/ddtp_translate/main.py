@@ -191,6 +191,9 @@ def _setup_css():
     .pkg-status-pending { color: #e5a50a; }
     .pkg-status-reviewed-comment { color: #ff7800; }
     .pkg-status-reviewed-ok { color: #26a269; }
+    .navigation-sidebar { background: alpha(@window_fg_color, 0.04); border-radius: 12px; padding: 4px; }
+    .navigation-sidebar button { border-radius: 10px; }
+    .navigation-sidebar button:checked { background: alpha(@accent_color, 0.15); }
     .status-bar { padding: 4px 12px; }
     .pkg-banner { padding: 4px 12px; }
     .compact-row { padding: 2px 6px; }
@@ -582,10 +585,56 @@ class MainWindow(Adw.ApplicationWindow):
         menu_btn = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu)
         header.pack_end(menu_btn)
 
+        # Main layout: nav sidebar + content
+        main_hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        main_hbox.set_vexpand(True)
+        outer_box.append(main_hbox)
+
+        # Vertical navigation sidebar
+        nav_sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        nav_sidebar.add_css_class("navigation-sidebar")
+        nav_sidebar.set_size_request(64, -1)
+        nav_sidebar.set_margin_top(8)
+        nav_sidebar.set_margin_bottom(8)
+        nav_sidebar.set_margin_start(4)
+
+        self._nav_buttons = {}
+        for nav_id, icon, label in [
+            ("translate", "accessories-text-editor-symbolic", _("Translate")),
+            ("review", "emblem-default-symbolic", _("Review")),
+            ("settings", "preferences-system-symbolic", _("Settings")),
+        ]:
+            btn_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            btn_box.set_halign(Gtk.Align.CENTER)
+            icon_widget = Gtk.Image.new_from_icon_name(icon)
+            icon_widget.set_pixel_size(28)
+            btn_box.append(icon_widget)
+            lbl = Gtk.Label(label=label)
+            lbl.add_css_class("caption")
+            btn_box.append(lbl)
+
+            btn = Gtk.ToggleButton()
+            btn.set_child(btn_box)
+            btn.add_css_class("flat")
+            btn.set_size_request(60, 56)
+            btn.connect("toggled", self._on_nav_toggled, nav_id)
+            nav_sidebar.append(btn)
+            self._nav_buttons[nav_id] = btn
+
+        main_hbox.append(nav_sidebar)
+
+        # Content stack
+        self._main_stack = Gtk.Stack()
+        self._main_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self._main_stack.set_hexpand(True)
+
+        # Translate page (the existing content)
+        translate_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
         # Content area: sidebar (220px) + editor panes
         content_paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
         content_paned.set_vexpand(True)
-        outer_box.append(content_paned)
+        translate_page.append(content_paned)
 
         # === LEFT: Sidebar (package list) — 220px, compact rows ===
         sidebar_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -651,11 +700,18 @@ class MainWindow(Adw.ApplicationWindow):
 
         # Left: original
         left_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        left_label = Gtk.Label(label=_("Original (English)"), xalign=0)
+        left_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        left_header.set_margin_start(8)
+        left_header.set_margin_top(6)
+        left_header.set_margin_end(4)
+        left_label = Gtk.Label(label=_("Original (English)"), xalign=0, hexpand=True)
         left_label.add_css_class("heading")
-        left_label.set_margin_start(8)
-        left_label.set_margin_top(6)
-        left_box.append(left_label)
+        left_header.append(left_label)
+        copy_btn = Gtk.Button(icon_name="edit-copy-symbolic", tooltip_text=_("Copy source text"))
+        copy_btn.add_css_class("flat")
+        copy_btn.connect("clicked", self._on_copy_source)
+        left_header.append(copy_btn)
+        left_box.append(left_header)
 
         left_scroll = Gtk.ScrolledWindow(vexpand=True)
         self.orig_view = Gtk.TextView(editable=False, wrap_mode=Gtk.WrapMode.WORD)
@@ -669,11 +725,18 @@ class MainWindow(Adw.ApplicationWindow):
 
         # Right: translation
         right_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        right_label = Gtk.Label(label=_("Translation"), xalign=0)
+        right_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        right_header.set_margin_start(8)
+        right_header.set_margin_top(6)
+        right_header.set_margin_end(8)
+        right_label = Gtk.Label(label=_("Translation"), xalign=0, hexpand=True)
         right_label.add_css_class("heading")
-        right_label.set_margin_start(8)
-        right_label.set_margin_top(6)
-        right_box.append(right_label)
+        right_header.append(right_label)
+        paste_btn = Gtk.Button(icon_name="edit-paste-symbolic", tooltip_text=_("Paste translation"))
+        paste_btn.add_css_class("flat")
+        paste_btn.connect("clicked", self._on_paste_translation)
+        right_header.append(paste_btn)
+        right_box.append(right_header)
 
         right_scroll = Gtk.ScrolledWindow(vexpand=True)
         self.trans_view = Gtk.TextView(editable=True, wrap_mode=Gtk.WrapMode.WORD)
@@ -736,6 +799,48 @@ class MainWindow(Adw.ApplicationWindow):
 
         outer_box.append(status_bar)
 
+        self._main_stack.add_named(translate_page, "translate")
+
+        # Review page
+        review_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        review_page.set_margin_start(24)
+        review_page.set_margin_end(24)
+        review_page.set_margin_top(24)
+        review_info = Adw.StatusPage(
+            icon_name="emblem-default-symbolic",
+            title=_("Review Translations"),
+            description=_("Review translations submitted by other users on DDTSS.\n\n"
+                          "Note: You cannot review your own translations. "
+                          "Another user must review them."),
+        )
+        review_page.append(review_info)
+        review_open_btn = Gtk.Button(label=_("Open DDTSS Review Page"))
+        review_open_btn.add_css_class("suggested-action")
+        review_open_btn.add_css_class("pill")
+        review_open_btn.set_halign(Gtk.Align.CENTER)
+        review_open_btn.connect("clicked", self._on_open_review)
+        review_page.append(review_open_btn)
+        self._main_stack.add_named(review_page, "review")
+
+        # Settings page (placeholder — opens PreferencesWindow)
+        settings_page = Adw.StatusPage(
+            icon_name="preferences-system-symbolic",
+            title=_("Settings"),
+            description=_("Configure DDTSS credentials, display options, and workflow."),
+        )
+        settings_btn = Gtk.Button(label=_("Open Settings"))
+        settings_btn.add_css_class("suggested-action")
+        settings_btn.add_css_class("pill")
+        settings_btn.set_halign(Gtk.Align.CENTER)
+        settings_btn.connect("clicked", lambda *_: PreferencesWindow(self).present())
+        settings_page.set_child(settings_btn)
+        self._main_stack.add_named(settings_page, "settings")
+
+        main_hbox.append(self._main_stack)
+
+        # Default to translate view
+        self._nav_buttons["translate"].set_active(True)
+
         # Set equal paned position after window is realized
         self.connect("realize", self._on_realize_set_paned)
 
@@ -746,6 +851,22 @@ class MainWindow(Adw.ApplicationWindow):
         self._refresh_packages()
         self._update_queue_badge()
         self._update_status_bar()
+
+    def _on_nav_toggled(self, button, nav_id):
+        """Handle navigation sidebar button toggle."""
+        if button.get_active():
+            self._main_stack.set_visible_child_name(nav_id)
+            # Deactivate other buttons
+            for bid, btn in self._nav_buttons.items():
+                if bid != nav_id:
+                    btn.handler_block_by_func(self._on_nav_toggled)
+                    btn.set_active(False)
+                    btn.handler_unblock_by_func(self._on_nav_toggled)
+        elif not any(b.get_active() for b in self._nav_buttons.values()):
+            # Don't allow all buttons to be deactivated
+            button.handler_block_by_func(self._on_nav_toggled)
+            button.set_active(True)
+            button.handler_unblock_by_func(self._on_nav_toggled)
 
     def _on_realize_set_paned(self, *_args):
         def set_pos():
@@ -1320,6 +1441,29 @@ class MainWindow(Adw.ApplicationWindow):
 
         threading.Thread(target=do_send, daemon=True).start()
 
+    def _on_copy_source(self, *_args):
+        """Copy original text to clipboard."""
+        buf = self.orig_view.get_buffer()
+        text = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False)
+        if text:
+            clipboard = Gdk.Display.get_default().get_clipboard()
+            clipboard.set(text)
+            self.status_label.set_text(_("Source text copied to clipboard"))
+
+    def _on_paste_translation(self, *_args):
+        """Paste text from clipboard into translation view."""
+        clipboard = Gdk.Display.get_default().get_clipboard()
+        clipboard.read_text_async(None, self._on_paste_done)
+
+    def _on_paste_done(self, clipboard, result):
+        try:
+            text = clipboard.read_text_finish(result)
+            if text:
+                self.trans_view.get_buffer().set_text(text)
+                self.status_label.set_text(_("Translation pasted from clipboard"))
+        except Exception:
+            self.status_label.set_text(_("Failed to paste from clipboard"))
+
     def _on_auto_translate(self, *_args):
         """Use po-translate to auto-translate the current package description."""
         if not self.current_pkg:
@@ -1341,6 +1485,26 @@ class MainWindow(Adw.ApplicationWindow):
         orig_text = pkg["short"]
         if pkg["long"]:
             orig_text += "\n" + pkg["long"]
+
+        # Warn user about AI translation quality
+        dialog = Adw.AlertDialog(
+            heading=_("AI Translation Warning"),
+            body=_("po-translate uses AI to generate translations. "
+                   "You MUST carefully review and edit the translation "
+                   "before submitting it for review on DDTSS.\n\n"
+                   "Machine translations often contain errors in "
+                   "terminology, grammar, and style."),
+        )
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("continue", _("Translate"))
+        dialog.set_response_appearance("continue", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response("continue")
+        dialog.connect("response", self._on_auto_translate_confirmed, pkg, lang, orig_text)
+        dialog.present(self)
+
+    def _on_auto_translate_confirmed(self, dialog, response, pkg, lang, orig_text):
+        if response != "continue":
+            return
 
         self._auto_translate_btn.set_sensitive(False)
         self.status_label.set_text(_("Translating with po-translate…"))
@@ -1404,7 +1568,7 @@ class MainWindow(Adw.ApplicationWindow):
             self.status_label.set_text(_("Auto-translate failed: {e}").format(e=error))
         elif translation:
             self.trans_view.get_buffer().set_text(translation)
-            self.status_label.set_text(_("Auto-translated — review before submitting"))
+            self.status_label.set_text(_("⚠️ AI-translated — review carefully before submitting!"))
 
     def _show_submit_result(self, package, success, error_msg):
         if success:
