@@ -144,7 +144,7 @@ def _format_ddtss_note(note):
         return ""
     parts = []
     # Parse owner
-    owner_m = re.match(r'owner:\s*(\S+)', note)
+    owner_m = re.match(r'owner:\s*(\S+?)(?:,|$)', note)
     if owner_m:
         parts.append(_("Submitted by {user}").format(user=owner_m.group(1)))
     # Parse review count "had X/Y"
