@@ -1420,7 +1420,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         settings = load_settings()
         if not settings.get("ddtss_alias"):
-            self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
+            self._show_login_dialog()
             return
 
         lines = text.split("\n", 1)
@@ -1836,7 +1836,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_open_review(self, *_args):
         settings = load_settings()
         if not settings.get("ddtss_alias"):
-            self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
+            self._show_login_dialog()
             return
 
         self.status_label.set_text(_("Loading reviews…"))
@@ -2413,7 +2413,7 @@ class MainWindow(Adw.ApplicationWindow):
 
         settings = load_settings()
         if not settings.get("ddtss_alias"):
-            self.status_label.set_text(_("DDTSS not configured — open Preferences first"))
+            self._show_login_dialog()
             return
 
         total = len(ready)
@@ -3166,19 +3166,23 @@ class DDTPTranslateApp(Adw.Application):
             body=_(
                 "This app helps you translate Debian package descriptions "
                 "through the Debian Description Translation Project (DDTP).\n\n"
+                "DDTSS (Debian Description Translation Server) is a web-based system "
+                "where volunteers translate the short and long descriptions of all "
+                "Debian packages. Translations are peer-reviewed before inclusion.\n\n"
                 "How it works:\n"
-                "1. Select your language from the dropdown\n"
-                "2. Browse packages that need translation\n"
+                "1. Create a free account at ddtp.debian.org\n"
+                "2. Select your language and browse untranslated packages\n"
                 "3. Write your translation in the editor\n"
-                "4. Add to queue or submit directly\n"
-                "5. Send the queue — translations go to DDTSS\n\n"
-                "Tip: Export as PO, translate in your favorite editor, "
-                "then import back to queue many at once.\n\n"
-                "Before submitting, configure your DDTSS account in Preferences."
+                "4. Submit — your translation enters the review queue\n"
+                "5. Other translators review and approve\n\n"
+                "To get started, you need a DDTSS account. Click \"Register\" below "
+                "to create one, or \"Get Started\" if you already have an account."
             ),
         )
         dialog.add_response("close", _("Get Started"))
+        dialog.add_response("register", _("Register"))
         dialog.set_response_appearance("close", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_response_appearance("register", Adw.ResponseAppearance.DEFAULT)
         dialog.set_default_response("close")
 
         def on_response(d, response):
@@ -3186,8 +3190,83 @@ class DDTPTranslateApp(Adw.Application):
             settings = load_settings()
             settings["welcome_shown"] = True
             save_settings(settings)
+            if response == "register":
+                Gtk.show_uri(win, "https://ddtp.debian.org/ddtss/index.cgi/createlogin", Gdk.CURRENT_TIME)
 
         dialog.connect("response", on_response)
+        dialog.present()
+
+
+    def _show_login_dialog(self):
+        """Show login dialog when user tries to submit without credentials."""
+        dialog = Adw.MessageDialog(
+            transient_for=self,
+            heading=_("Login Required"),
+            body=_(
+                "You need a DDTSS account to submit translations.\n\n"
+                "If you already have an account, click \"Log In\" to enter your "
+                "credentials. Otherwise, click \"Register\" to create a free account "
+                "at ddtp.debian.org."
+            ),
+        )
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("register", _("Register"))
+        dialog.add_response("login", _("Log In"))
+        dialog.set_response_appearance("login", Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response("login")
+
+        def on_response(d, response):
+            d.close()
+            if response == "register":
+                Gtk.show_uri(self, "https://ddtp.debian.org/ddtss/index.cgi/createlogin", Gdk.CURRENT_TIME)
+            elif response == "login":
+                self._show_login_form()
+
+        dialog.connect("response", on_response)
+        dialog.present()
+
+    def _show_login_form(self):
+        """Show inline login form dialog."""
+        dialog = Adw.PreferencesWindow(
+            title=_("DDTSS Login"),
+            transient_for=self,
+        )
+        page = Adw.PreferencesPage()
+        group = Adw.PreferencesGroup(
+            title=_("DDTSS Account"),
+            description=_("Enter your DDTSS credentials"),
+        )
+
+        alias_row = Adw.EntryRow(title=_("Alias"))
+        group.add(alias_row)
+
+        pass_row = Adw.PasswordEntryRow(title=_("Password"))
+        group.add(pass_row)
+
+        save_btn = Gtk.Button(label=_("Log In & Submit"))
+        save_btn.add_css_class("suggested-action")
+        save_btn.add_css_class("pill")
+        save_btn.set_margin_top(12)
+        save_btn.set_margin_bottom(8)
+
+        def on_save(*_args):
+            alias = alias_row.get_text().strip()
+            password = pass_row.get_text().strip()
+            if not alias or not password:
+                return
+            settings = load_settings()
+            settings["ddtss_alias"] = alias
+            settings["ddtss_password"] = password
+            save_settings(settings)
+            dialog.close()
+            self.status_label.set_text(_("Credentials saved"))
+            # Retry submit
+            GLib.idle_add(self._on_submit)
+
+        save_btn.connect("clicked", on_save)
+        group.add(save_btn)
+        page.add(group)
+        dialog.add(page)
         dialog.present()
 
     def create_action(self, name, callback):
