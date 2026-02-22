@@ -828,26 +828,154 @@ class MainWindow(Adw.ApplicationWindow):
 
         self._main_stack.add_named(translate_page, "translate")
 
-        # Review page
-        review_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        review_page.set_margin_start(24)
-        review_page.set_margin_end(24)
-        review_page.set_margin_top(24)
-        review_info = Adw.StatusPage(
+        # Review page — real review list from DDTSS
+        review_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+
+        # Review header bar
+        review_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        review_header.set_margin_start(12)
+        review_header.set_margin_end(12)
+        review_header.set_margin_top(8)
+        review_header.set_margin_bottom(8)
+
+        review_title = Gtk.Label(label=_("Pending Reviews"), xalign=0, hexpand=True)
+        review_title.add_css_class("title-2")
+        review_header.append(review_title)
+
+        self._review_count_label = Gtk.Label(label="")
+        self._review_count_label.add_css_class("dim-label")
+        review_header.append(self._review_count_label)
+
+        review_refresh_btn = Gtk.Button(icon_name="view-refresh-symbolic",
+                                        tooltip_text=_("Refresh pending reviews"))
+        review_refresh_btn.connect("clicked", self._on_refresh_reviews)
+        review_header.append(review_refresh_btn)
+
+        accept_all_btn = Gtk.Button(label=_("Accept All"))
+        accept_all_btn.add_css_class("suggested-action")
+        accept_all_btn.connect("clicked", self._on_accept_all_pending)
+        review_header.append(accept_all_btn)
+
+        review_page.append(review_header)
+
+        # Workflow progress indicator
+        workflow_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        workflow_box.set_margin_start(12)
+        workflow_box.set_margin_end(12)
+        workflow_box.set_margin_bottom(8)
+        workflow_box.set_halign(Gtk.Align.CENTER)
+
+        for step_icon, step_label in [
+            ("accessories-text-editor-symbolic", _("Translate")),
+            ("go-next-symbolic", ""),
+            ("emblem-default-symbolic", _("Review")),
+            ("go-next-symbolic", ""),
+            ("emblem-ok-symbolic", _("Accept")),
+        ]:
+            if step_label == "":
+                arrow = Gtk.Image.new_from_icon_name(step_icon)
+                arrow.set_pixel_size(16)
+                arrow.add_css_class("dim-label")
+                workflow_box.append(arrow)
+            else:
+                step_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+                step_box.set_halign(Gtk.Align.CENTER)
+                sicon = Gtk.Image.new_from_icon_name(step_icon)
+                sicon.set_pixel_size(24)
+                step_box.append(sicon)
+                slbl = Gtk.Label(label=step_label)
+                slbl.add_css_class("caption")
+                slbl.add_css_class("dim-label")
+                step_box.append(slbl)
+                workflow_box.append(step_box)
+
+        review_page.append(workflow_box)
+
+        # Review list
+        review_scroll = Gtk.ScrolledWindow(vexpand=True)
+        self._review_list = Gtk.ListBox()
+        self._review_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        self._review_list.add_css_class("boxed-list")
+        self._review_list.set_margin_start(12)
+        self._review_list.set_margin_end(12)
+        self._review_list.set_margin_bottom(8)
+        self._review_list.connect("row-selected", self._on_review_pkg_selected)
+        review_scroll.set_child(self._review_list)
+
+        # Empty state
+        self._review_empty = Adw.StatusPage(
             icon_name="emblem-default-symbolic",
-            title=_("Review Translations"),
-            description=_("Review translations submitted by other users on DDTSS.\n\n"
-                          "Note: You cannot review your own translations. "
-                          "Another user must review them."),
+            title=_("No pending reviews"),
+            description=_("Click refresh to check for translations awaiting review on DDTSS.\n\n"
+                          "Note: You cannot review your own translations."),
         )
-        review_page.append(review_info)
-        review_open_btn = Gtk.Button(label=_("Open DDTSS Review Page"))
-        review_open_btn.add_css_class("suggested-action")
-        review_open_btn.add_css_class("pill")
-        review_open_btn.set_halign(Gtk.Align.CENTER)
-        review_open_btn.connect("clicked", self._on_open_review)
-        review_page.append(review_open_btn)
+        self._review_empty.set_vexpand(True)
+
+        self._review_stack = Gtk.Stack()
+        self._review_stack.add_named(self._review_empty, "empty")
+        self._review_stack.add_named(review_scroll, "list")
+        self._review_stack.set_vexpand(True)
+        review_page.append(self._review_stack)
+
+        # Review detail (bottom)
+        self._review_detail_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        self._review_detail_box.set_margin_start(12)
+        self._review_detail_box.set_margin_end(12)
+        self._review_detail_box.set_margin_bottom(8)
+        self._review_detail_box.set_visible(False)
+
+        self._review_orig_label = Gtk.Label(label=_("Original"), xalign=0)
+        self._review_orig_label.add_css_class("heading")
+        self._review_detail_box.append(self._review_orig_label)
+        review_orig_scroll = Gtk.ScrolledWindow(min_content_height=60, max_content_height=120)
+        self._review_orig_view = Gtk.TextView(editable=False, monospace=True,
+                                               wrap_mode=Gtk.WrapMode.WORD_CHAR)
+        self._review_orig_view.set_top_margin(4)
+        self._review_orig_view.set_left_margin(4)
+        review_orig_scroll.set_child(self._review_orig_view)
+        self._review_detail_box.append(review_orig_scroll)
+
+        self._review_trans_label = Gtk.Label(label=_("Translation"), xalign=0)
+        self._review_trans_label.add_css_class("heading")
+        self._review_detail_box.append(self._review_trans_label)
+        review_trans_scroll = Gtk.ScrolledWindow(min_content_height=60, max_content_height=120)
+        self._review_trans_view = Gtk.TextView(editable=False, monospace=True,
+                                                wrap_mode=Gtk.WrapMode.WORD_CHAR)
+        self._review_trans_view.set_top_margin(4)
+        self._review_trans_view.set_left_margin(4)
+        review_trans_scroll.set_child(self._review_trans_view)
+        self._review_detail_box.append(review_trans_scroll)
+
+        review_action_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        review_action_box.set_margin_top(4)
+        self._review_accept_btn = Gtk.Button(label=_("Accept"))
+        self._review_accept_btn.add_css_class("suggested-action")
+        self._review_accept_btn.connect("clicked", self._on_review_accept)
+        review_action_box.append(self._review_accept_btn)
+        self._review_reject_btn = Gtk.Button(label=_("Reject"))
+        self._review_reject_btn.add_css_class("destructive-action")
+        self._review_reject_btn.connect("clicked", self._on_review_reject)
+        review_action_box.append(self._review_reject_btn)
+        self._review_detail_box.append(review_action_box)
+
+        review_page.append(self._review_detail_box)
+
+        # Session stats bar
+        self._session_stats = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        self._session_stats.set_margin_start(12)
+        self._session_stats.set_margin_end(12)
+        self._session_stats.set_margin_bottom(4)
+        self._session_translations = 0
+        self._session_reviews = 0
+        self._session_stats_label = Gtk.Label(label="", xalign=0, hexpand=True)
+        self._session_stats_label.add_css_class("dim-label")
+        self._session_stats_label.add_css_class("caption")
+        self._session_stats.append(self._session_stats_label)
+        review_page.append(self._session_stats)
+
         self._main_stack.add_named(review_page, "review")
+        self._pending_reviews = []
+        self._current_review_pkg = None
 
         # Settings page (placeholder — opens PreferencesWindow)
         settings_page = Adw.StatusPage(
@@ -1600,6 +1728,8 @@ class MainWindow(Adw.ApplicationWindow):
     def _show_submit_result(self, package, success, error_msg):
         if success:
             self.status_label.set_text(_("Sent successfully!"))
+            self._session_translations += 1
+            self._update_session_stats()
             dialog = Adw.MessageDialog(
                 transient_for=self,
                 heading="✅ " + _("Translation submitted"),
@@ -1832,6 +1962,177 @@ class MainWindow(Adw.ApplicationWindow):
         self._on_show_queue_dialog()
 
     # --- Review dialog ---
+
+    # --- Review page methods ---
+
+    def _on_refresh_reviews(self, *_args):
+        """Fetch pending reviews from DDTSS."""
+        settings = load_settings()
+        if not settings.get("ddtss_alias"):
+            self._show_login_dialog()
+            return
+        self.status_label.set_text(_("Fetching pending reviews…"))
+        threading.Thread(target=self._fetch_reviews_thread, daemon=True).start()
+
+    def _fetch_reviews_thread(self):
+        try:
+            settings = load_settings()
+            lang = settings.get("language", "sv")
+            client = DDTSSClient(lang=lang)
+            if not client.is_logged_in():
+                client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
+            reviews = client.get_pending_reviews()
+            GLib.idle_add(self._on_reviews_loaded, reviews)
+        except Exception as e:
+            GLib.idle_add(self._on_reviews_error, str(e))
+
+    def _on_reviews_loaded(self, reviews):
+        self._pending_reviews = [r for r in reviews if not r.get("reviewed_by_you")]
+        # Clear list
+        while True:
+            row = self._review_list.get_row_at_index(0)
+            if row is None:
+                break
+            self._review_list.remove(row)
+
+        for r in self._pending_reviews:
+            row = Adw.ActionRow()
+            row.set_title(r["package"])
+            note = r.get("note", "")
+            row.set_subtitle(note if note else _("Pending review"))
+            row._review_data = r
+
+            # Badge
+            if r.get("reviewed_by_you"):
+                badge = Gtk.Label(label="✅")
+            else:
+                badge = Gtk.Label(label=_("Review"))
+                badge.add_css_class("caption")
+                badge.add_css_class("accent")
+            row.add_suffix(badge)
+            self._review_list.append(row)
+
+        count = len(self._pending_reviews)
+        self._review_count_label.set_text(str(count))
+        if count > 0:
+            self._review_stack.set_visible_child_name("list")
+        else:
+            self._review_stack.set_visible_child_name("empty")
+
+        import datetime
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
+        self.status_label.set_text(
+            _("%(time)s — %(count)d pending reviews") % {"time": ts, "count": count}
+        )
+        self._update_session_stats()
+
+    def _on_reviews_error(self, msg):
+        self.status_label.set_text(_("Review error: %s") % msg)
+
+    def _on_review_pkg_selected(self, listbox, row):
+        if row is None:
+            self._review_detail_box.set_visible(False)
+            return
+        review = row._review_data
+        self._current_review_pkg = review["package"]
+        self._review_detail_box.set_visible(True)
+        self._review_orig_view.get_buffer().set_text(_("Loading…"))
+        self._review_trans_view.get_buffer().set_text("")
+        threading.Thread(target=self._load_review_detail,
+                        args=(review["package"],), daemon=True).start()
+
+    def _load_review_detail(self, package):
+        try:
+            settings = load_settings()
+            lang = settings.get("language", "sv")
+            client = DDTSSClient(lang=lang)
+            if not client.is_logged_in():
+                client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
+            data = client.get_review_page(package)
+            GLib.idle_add(self._show_review_detail, data)
+        except Exception as e:
+            GLib.idle_add(self.status_label.set_text, _("Error: %s") % str(e))
+
+    def _show_review_detail(self, data):
+        orig = data.get("original", "")
+        trans_short = data.get("short", "")
+        trans_long = data.get("long", "")
+        self._review_orig_view.get_buffer().set_text(orig)
+        self._review_trans_view.get_buffer().set_text(
+            trans_short + "\n" + trans_long if trans_short else trans_long
+        )
+        self._review_data_cache = data
+
+    def _on_review_accept(self, *_args):
+        if not self._current_review_pkg:
+            return
+        self.status_label.set_text(_("Accepting %s…") % self._current_review_pkg)
+        threading.Thread(target=self._do_review_action,
+                        args=(self._current_review_pkg, "accept"), daemon=True).start()
+
+    def _on_review_reject(self, *_args):
+        if not self._current_review_pkg:
+            return
+        self.status_label.set_text(_("Rejecting %s…") % self._current_review_pkg)
+        threading.Thread(target=self._do_review_action,
+                        args=(self._current_review_pkg, "reject"), daemon=True).start()
+
+    def _do_review_action(self, package, action):
+        try:
+            settings = load_settings()
+            lang = settings.get("language", "sv")
+            client = DDTSSClient(lang=lang)
+            if not client.is_logged_in():
+                client.login(settings["ddtss_alias"], settings.get("ddtss_password", ""))
+            client.submit_review(package, action=action)
+            self._session_reviews += 1
+            GLib.idle_add(self._on_review_action_done, package, action)
+        except Exception as e:
+            GLib.idle_add(self.status_label.set_text, _("Review error: %s") % str(e))
+
+    def _on_review_action_done(self, package, action):
+        import datetime
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
+        action_text = _("accepted") if action == "accept" else _("rejected")
+        self.status_label.set_text(
+            _("%(time)s — %(pkg)s %(action)s") %
+            {"time": ts, "pkg": package, "action": action_text}
+        )
+        self._review_detail_box.set_visible(False)
+        self._current_review_pkg = None
+        self._update_session_stats()
+        # Refresh reviews
+        self._on_refresh_reviews()
+
+    def _on_accept_all_pending(self, *_args):
+        if not self._pending_reviews:
+            self._on_refresh_reviews()
+            return
+        count = len(self._pending_reviews)
+        dialog = Adw.AlertDialog()
+        dialog.set_heading(_("Accept All Reviews"))
+        dialog.set_body(
+            _("Accept all %(count)d pending reviews?") % {"count": count}
+        )
+        dialog.add_response("cancel", _("Cancel"))
+        dialog.add_response("accept", _("Accept All"))
+        dialog.set_response_appearance("accept", Adw.ResponseAppearance.SUGGESTED)
+
+        def on_response(dlg, response):
+            if response == "accept":
+                settings = load_settings()
+                lang = settings.get("language", "sv")
+                self._on_accept_all_reviews(self._pending_reviews, lang, settings, None)
+
+        dialog.connect("response", on_response)
+        dialog.present(self)
+
+    def _update_session_stats(self):
+        self._session_stats_label.set_text(
+            _("Session: %(translations)d translations, %(reviews)d reviews") %
+            {"translations": self._session_translations,
+             "reviews": self._session_reviews}
+        )
 
     def _on_open_review(self, *_args):
         settings = load_settings()
