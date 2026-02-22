@@ -18,3 +18,8 @@ GPL-3.0
 ## Author
 
 Daniel Nylander — [danielnylander.se](https://danielnylander.se)
+
+## Screenshots
+
+![ddtp-translate](screenshots/ddtp-translate.png)
+
