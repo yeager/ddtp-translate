@@ -1,22 +1,20 @@
 # DDTP Translate
 
-Translate Debian package descriptions via DDTP/DDTSS.
-Review UI, queue management, session stats.
+Debian Description Translation Project tool with DDTSS-style review UI.
 
-GTK4/Adwaita · Python · v0.14.0 · 276 translatable strings
+Built with GTK4/Adwaita. Part of the [Danne L10n Suite](https://github.com/yeager/debian-repo).
 
-## Install
+## Installation
 
-### Ubuntu / Debian
+### Debian/Ubuntu
 ```bash
 sudo apt install ddtp-translate
 ```
-Repo: [yeager/debian-repo](https://github.com/yeager/debian-repo)
-
-## Translation
-
-Translated via [Transifex](https://app.transifex.com/danielnylander/ddtp-translate/). 11 languages.
 
 ## License
 
-GPL-3.0-or-later · Daniel Nylander <daniel@danielnylander.se>
+GPL-3.0
+
+## Author
+
+Daniel Nylander — [danielnylander.se](https://danielnylander.se)
