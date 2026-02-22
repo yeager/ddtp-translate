@@ -50,13 +50,11 @@ _ = gettext.gettext
 
 APP_ID = "se.danielnylander.ddtp-translate"
 
-
 # --- Data directory helpers ---
 
 def _po_escape(s):
     """Escape a string for use in a PO file msgid/msgstr."""
     return s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
-
 
 def _parse_po_entries(path):
     """Parse a .po file and return list of (msgid, msgstr) tuples, skipping the header."""
@@ -105,21 +103,17 @@ def _parse_po_entries(path):
 
     return entries
 
-
 def _data_dir():
     xdg = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
     d = os.path.join(xdg, "ddtp-translate")
     os.makedirs(d, exist_ok=True)
     return d
 
-
 def _queue_path():
     return os.path.join(_data_dir(), "queue.json")
 
-
 def _log_path():
     return os.path.join(_data_dir(), "events.log")
-
 
 def _log_event(message):
     """Log an event if logging is enabled."""
@@ -133,7 +127,6 @@ def _log_event(message):
             f.write(f"[{ts}] {message}\n")
     except OSError:
         pass
-
 
 def _format_ddtss_note(note):
     """Format DDTSS note string into user-friendly text.
@@ -161,7 +154,6 @@ def _format_ddtss_note(note):
         return " — ".join(parts)
     return note
 
-
 def _save_queue(queue):
     """Persist queue to disk."""
     import json
@@ -181,7 +173,6 @@ def _save_queue(queue):
     except OSError:
         pass
 
-
 def _load_queue():
     """Load queue from disk."""
     import json
@@ -200,7 +191,6 @@ def _load_queue():
         return items
     except (OSError, json.JSONDecodeError, KeyError):
         return []
-
 
 def _setup_css():
     css = b"""
@@ -231,7 +221,6 @@ def _setup_css():
     Gtk.StyleContext.add_provider_for_display(
         Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
-
 # --- Queue item ---
 
 class QueueItem:
@@ -248,7 +237,6 @@ class QueueItem:
         self.long_text = long_text
         self.status = self.STATUS_READY
         self.error_msg = ""
-
 
 # --- Preferences Window ---
 
@@ -409,7 +397,6 @@ class PreferencesWindow(Adw.PreferencesWindow):
         )
         save_settings(self.settings)
         return False
-
 
 # --- Main Window ---
 
@@ -3201,7 +3188,6 @@ class MainWindow(Adw.ApplicationWindow):
         raw = ''.join(parts)
         return raw.replace('\\n', '\n').replace('\\"', '"').replace('\\\\', '\\')
 
-
 # --- Application ---
 
 class DDTPTranslateApp(Adw.Application):
@@ -3281,7 +3267,6 @@ class DDTPTranslateApp(Adw.Application):
 
         dialog.connect("response", on_response)
         dialog.present()
-
 
     def _show_login_dialog(self):
         """Show login dialog when user tries to submit without credentials."""
@@ -3440,10 +3425,11 @@ class DDTPTranslateApp(Adw.Application):
             license_type=Gtk.License.GPL_3_0,
             website="https://github.com/yeager/ddtp-translate",
             issue_url="https://github.com/yeager/ddtp-translate/issues",
-            translate_url="https://app.transifex.com/danielnylander/ddtp-translate/",
             translator_credits=_("Translate this app: https://www.transifex.com/danielnylander/ddtp-translate/"),
             comments=_("Translate Debian package descriptions via DDTP"),
         )
+        about.add_link(_("Help translate"), "https://app.transifex.com/danielnylander/ddtp-translate/")
+
         about.present(self.props.active_window)
 
     def _on_shortcuts(self, *_args):
@@ -3495,15 +3481,12 @@ class DDTPTranslateApp(Adw.Application):
         shortcuts_win.add_section(section)
         shortcuts_win.present()
 
-
 def main():
     app = DDTPTranslateApp()
     app.run(sys.argv)
 
-
 if __name__ == "__main__":
     main()
-
 
 # --- Session restore ---
 import json as _json
@@ -3531,7 +3514,6 @@ def _restore_session(window, app_name):
     except (FileNotFoundError, _json.JSONDecodeError, OSError):
         pass
 
-
 # --- Fullscreen toggle (F11) ---
 def _setup_fullscreen(window, app):
     """Add F11 fullscreen toggle."""
@@ -3543,7 +3525,6 @@ def _setup_fullscreen(window, app):
         ))
         app.add_action(action)
         app.set_accels_for_action('app.toggle-fullscreen', ['F11'])
-
 
 # --- Plugin system ---
 import importlib.util
