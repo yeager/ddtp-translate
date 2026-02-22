@@ -620,7 +620,7 @@ class MainWindow(Adw.ApplicationWindow):
         # Vertical navigation sidebar
         nav_sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         nav_sidebar.add_css_class("navigation-sidebar")
-        nav_sidebar.set_size_request(64, -1)
+        nav_sidebar.set_size_request(88, -1)
         nav_sidebar.set_margin_top(8)
         nav_sidebar.set_margin_bottom(8)
         nav_sidebar.set_margin_start(4)
@@ -634,7 +634,7 @@ class MainWindow(Adw.ApplicationWindow):
             btn_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
             btn_box.set_halign(Gtk.Align.CENTER)
             icon_widget = Gtk.Image.new_from_icon_name(icon)
-            icon_widget.set_pixel_size(28)
+            icon_widget.set_pixel_size(48)
             btn_box.append(icon_widget)
             lbl = Gtk.Label(label=label)
             lbl.add_css_class("caption")
@@ -643,7 +643,7 @@ class MainWindow(Adw.ApplicationWindow):
             btn = Gtk.ToggleButton()
             btn.set_child(btn_box)
             btn.add_css_class("flat")
-            btn.set_size_request(60, 56)
+            btn.set_size_request(80, 76)
             btn.connect("toggled", self._on_nav_toggled, nav_id)
             nav_sidebar.append(btn)
             self._nav_buttons[nav_id] = btn
