@@ -22,10 +22,10 @@ from . import __version__
 from .ddtp_api import DDTP_LANGUAGES, fetch_untranslated, fetch_ddtp_stats, fetch_popcon_data
 from .settings import load_settings, save_settings
 from .ddtss_client import (
-from ddtp_translate.accessibility import AccessibilityManager
     DDTSSClient, DDTSSError, DDTSSAuthError,
     DDTSSLockedError, DDTSSValidationError,
 )
+from .accessibility import AccessibilityManager
 
 # i18n setup
 try:
