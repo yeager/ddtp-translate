@@ -581,6 +581,7 @@ class MainWindow(Adw.ApplicationWindow):
         misc_section.append(_("Show Queue"), "app.show-queue")
         misc_section.append(_("Clear queue"), "app.clear-queue")
         misc_section.append(_("Statistics"), "app.stats")
+        # NOTE: Review action removed - now in sidebar navigation
         menu.append_section(None, misc_section)
 
         bottom_section = Gio.Menu()
@@ -993,9 +994,9 @@ class MainWindow(Adw.ApplicationWindow):
         """Handle navigation sidebar button toggle."""
         if button.get_active():
             self._main_stack.set_visible_child_name(nav_id)
-            # Deactivate other buttons
+            # Deactivate other buttons (without triggering signals)
             for bid, btn in self._nav_buttons.items():
-                if bid != nav_id:
+                if bid != nav_id and btn.get_active():
                     btn.handler_block_by_func(self._on_nav_toggled)
                     btn.set_active(False)
                     btn.handler_unblock_by_func(self._on_nav_toggled)
@@ -2035,7 +2036,7 @@ class MainWindow(Adw.ApplicationWindow):
         except Exception as e:
             GLib.idle_add(self.status_label.set_text, _("Error: %s") % str(e))
 
-    def _show_review_detail(self, data):
+    def _show_review_detail(self, data, lang=None, settings=None):
         orig = data.get("original", "")
         trans_short = data.get("short", "")
         trans_long = data.get("long", "")
