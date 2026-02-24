@@ -3196,6 +3196,7 @@ class DDTPTranslateApp(Adw.Application):
 
     def __init__(self):
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
+        GLib.set_application_name(_("DDTP Translate"))
 
         self.create_action("preferences", self._on_preferences)
         self.create_action("about", self._on_about)

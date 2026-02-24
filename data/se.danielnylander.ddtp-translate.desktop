@@ -1,5 +1,6 @@
 [Desktop Entry]
 Type=Application
+StartupWMClass=se.danielnylander.ddtp-translate
 Name=DDTP Translate
 Name[sv]=Översätt DDTP
 Comment=Translate Debian package descriptions via DDTP
