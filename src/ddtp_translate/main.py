@@ -910,7 +910,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._review_orig_label = Gtk.Label(label=_("Original"), xalign=0)
         self._review_orig_label.add_css_class("heading")
         self._review_detail_box.append(self._review_orig_label)
-        review_orig_scroll = Gtk.ScrolledWindow(min_content_height=60, max_content_height=120)
+        review_orig_scroll = Gtk.ScrolledWindow(min_content_height=100, vexpand=True)
         self._review_orig_view = Gtk.TextView(editable=False, monospace=True,
                                                wrap_mode=Gtk.WrapMode.WORD_CHAR)
         self._review_orig_view.set_top_margin(4)
@@ -921,7 +921,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._review_trans_label = Gtk.Label(label=_("Translation"), xalign=0)
         self._review_trans_label.add_css_class("heading")
         self._review_detail_box.append(self._review_trans_label)
-        review_trans_scroll = Gtk.ScrolledWindow(min_content_height=60, max_content_height=120)
+        review_trans_scroll = Gtk.ScrolledWindow(min_content_height=100, vexpand=True)
         self._review_trans_view = Gtk.TextView(editable=False, monospace=True,
                                                 wrap_mode=Gtk.WrapMode.WORD_CHAR)
         self._review_trans_view.set_top_margin(4)
