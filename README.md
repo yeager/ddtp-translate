@@ -41,9 +41,9 @@ pip install -e .
 
 ## Translation
 
-This application is managed on Transifex: https://app.transifex.com/danielnylander/ddtp-translate/
-
-Available in 11 languages: Swedish, German, French, Spanish, Italian, Portuguese, Dutch, Polish, Czech, Russian, and Chinese (Simplified).
+The checked-in translation catalogues are maintained in [`po/`](po/). The former
+Transifex project is currently unavailable; follow the GitHub issue tracker for
+the replacement collaboration workflow.
 
 ## License
 
