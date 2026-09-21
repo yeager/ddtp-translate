@@ -20,21 +20,13 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get install -y gettext
-          curl -o- https://raw.githubusercontent.com/transifex/cli/master/install.sh | bash
-          sudo mv tx /usr/local/bin/
 
-      - name: Pull translations
-        env:
-          TX_TOKEN: ${{ secrets.TX_TOKEN }}
-        run: |
-          tx pull -a --force --minimum-perc 10
-          ls -la po/*.po 2>/dev/null || echo "No translations yet"
-
-      - name: Compile translations
+      - name: Validate and compile checked-in translations
         run: |
           for po in po/*.po; do
             [ -f "$po" ] || continue
             lang=$(basename "$po" .po)
+            msgfmt --check "$po"
             mkdir -p locale/$lang/LC_MESSAGES
             msgfmt -o locale/$lang/LC_MESSAGES/ddtp-translate.mo "$po"
           done

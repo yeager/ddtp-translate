@@ -1,3 +1,9 @@
+ddtp-translate (0.14.3-1) unstable; urgency=medium
+
+  * Use GitHub pull requests for translation contributions.
+
+ -- Daniel Nylander <daniel@danielnylander.se>  Mon, 21 Sep 2026 15:00:00 +0200
+
 ddtp-translate (0.14.2-2) unstable; urgency=medium
 
   * Re-upload to mentors. (Closes: #1129385)

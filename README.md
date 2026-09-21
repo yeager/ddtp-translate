@@ -41,9 +41,11 @@ pip install -e .
 
 ## Translation
 
-The checked-in translation catalogues are maintained in [`po/`](po/). The former
-Transifex project is currently unavailable; follow the GitHub issue tracker for
-the replacement collaboration workflow.
+Translations are maintained through GitHub pull requests. Copy the template
+catalogue in [`po/ddtp-translate.pot`](po/ddtp-translate.pot) to a new locale
+file such as `po/de.po`, translate it with a gettext editor, then open a PR.
+Run `msgfmt --check po/<locale>.po` before submitting it. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for the full review workflow.
 
 ## License
 

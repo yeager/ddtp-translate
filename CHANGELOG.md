@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.3 (2026-09-21)
+
+### Changed
+- Translation contributions are reviewed through GitHub pull requests.
+- Release builds validate and package checked-in PO catalogues without Transifex.
+
 ## 0.8.0 (2026-02-17)
 
 ### Added
