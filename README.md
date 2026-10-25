@@ -1,4 +1,4 @@
-# DDTP Translate [![Version](https://img.shields.io/badge/version-0.14.2-blue.svg)](https://github.com/yeager/ddtp-translate)
+# DDTP Translate [![Version](https://img.shields.io/badge/version-0.14.4-blue.svg)](https://github.com/yeager/ddtp-translate)
 
 ## Screenshot
 
@@ -22,6 +22,17 @@ The application streamlines the translation workflow by providing easy access to
 - Batch translation support
 
 ## Installation
+
+### PyPI / pipx (Debian/Ubuntu)
+
+Install GTK4, libadwaita and the system PyGObject bindings first; pip cannot
+install these native system libraries:
+
+```bash
+sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-adw-1 pipx
+pipx install --system-site-packages ddtp-translate
+```
+
 
 ### APT Repository (Debian/Ubuntu)
 

@@ -43,7 +43,6 @@ for d in [
         LOCALE_DIR = d
         break
 
-locale.bindtextdomain("ddtp-translate", LOCALE_DIR)
 gettext.bindtextdomain("ddtp-translate", LOCALE_DIR)
 gettext.textdomain("ddtp-translate")
 _ = gettext.gettext
